@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import re
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from custom_components.wled_backupservice.const import INTERVAL_UNITS, STORAGE_ROOTS
+
+yaml: Any = importlib.import_module("yaml")
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPONENT = ROOT / "custom_components" / "wled_backupservice"
