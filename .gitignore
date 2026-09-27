@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+venv*/
+env*/
+
+# Tooling caches and reports
+.coverage
+.coverage.*
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+coverage.xml
+htmlcov/
+
+# Local files
+*.local
+secrets.*
+
+# Editors and OS files
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+.venv-py*/**
+.venv-py*/
