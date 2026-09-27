@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Blocked'
 tags: [documentation, release, hacs, branding]
 ---
 
 # 17 — Documentation & release
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Blocked](https://img.shields.io/badge/status-Blocked-red)
 
 ## Objective
 
@@ -92,8 +92,8 @@ CHANGELOG.md
 
 ## Acceptance criteria (maps to PRD §32 Definition of Done)
 
-- [ ] README documents setup, storage, actions, restore, troubleshooting, versions, security.
-- [ ] `quality_scale.yaml` present and honest.
+- [x] README documents setup, storage, actions, restore, troubleshooting, versions, security.
+- [x] `quality_scale.yaml` present and honest.
 - [ ] Brands PR opened (and tracked to merge).
 - [ ] First GitHub release published; manifest version bumped.
 - [ ] Hassfest + HACS + tests green on the release commit.
@@ -103,6 +103,31 @@ CHANGELOG.md
 
 The integration is documented, released, and HACS-installable, with an honest quality-scale
 record and brands submission in progress/merged — satisfying the PRD §32 checklist.
+
+## Validation completed
+
+- Parsed `.github/workflows/*.yml` with `yaml.safe_load(...)`
+- Parsed README action YAML examples against `custom_components/wled_backupservice/services.yaml`
+- `python -m pytest`
+- `python -m ruff check .`
+
+## Open questions / discoveries
+
+- In-repo release-preparation artifacts are now present: `README.md`, `info.md`,
+   `custom_components/wled_backupservice/quality_scale.yaml`, `CHANGELOG.md`, and a new
+   `release.yml` GitHub Actions workflow.
+- The release workflow is branch-aware: it checks out the branch used to invoke the manual
+   run, commits the version bump back to that same branch, tags the resulting commit, and
+   publishes a GitHub release from it.
+- The workflow accepts only HACS-friendly semantic versions without a leading `v`, then tags
+   the release commit as `v<version>` for GitHub releases.
+- README now includes HACS, release, test-gate, Hassfest, and HACS-validation badges to make
+   installation status and repo health easier to see.
+- This plan remains blocked on external steps that cannot be completed from the local
+   repository alone: opening the `home-assistant/brands` PR, real-hardware preset-restore
+   verification across the documented firmware matrix, invoking the release workflow to
+   publish the first GitHub release, and confirming green workflow runs on that released
+   commit.
 
 ## References
 

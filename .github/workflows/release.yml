@@ -1,0 +1,204 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without a leading v, for example 1.0.0 or 1.0.1-beta.1
+        required: true
+        type: string
+      release_title:
+        description: Optional release title. Defaults to v<version>.
+        required: false
+        type: string
+      release_notes:
+        description: Optional release notes. Leave blank to use GitHub generated notes.
+        required: false
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a prerelease.
+        required: false
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      version:
+        description: Release version without a leading v.
+        required: true
+        type: string
+      release_title:
+        description: Optional release title.
+        required: false
+        default: ""
+        type: string
+      release_notes:
+        description: Optional release notes.
+        required: false
+        default: ""
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a prerelease.
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Cut release on ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate branch invocation
+        run: |
+          if [ "${GITHUB_REF_TYPE}" != "branch" ]; then
+            echo "This workflow must be invoked from a branch ref." >&2
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install .[dev]
+
+      - name: Validate release version
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          import sys
+
+          version = os.environ["RELEASE_VERSION"].strip()
+          pattern = re.compile(
+              r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+              r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
+          )
+          if not pattern.fullmatch(version):
+              raise SystemExit(
+                  "Version must be HACS-friendly SemVer without a leading v, "
+                  "for example 1.0.0 or 1.0.1-beta.1"
+              )
+          PY
+
+      - name: Ensure release tag does not already exist
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version }}
+        run: |
+          if git rev-parse "v${RELEASE_VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${RELEASE_VERSION} already exists." >&2
+            exit 1
+          fi
+
+      - name: Update versioned files
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from datetime import date
+          from pathlib import Path
+
+          version = os.environ["RELEASE_VERSION"].strip()
+          today = date.today().isoformat()
+          root = Path(".")
+
+          manifest_path = root / "custom_components" / "wled_backupservice" / "manifest.json"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          manifest["version"] = version
+          manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+          pyproject_path = root / "pyproject.toml"
+          pyproject_text = pyproject_path.read_text(encoding="utf-8")
+          pyproject_text, count = re.subn(
+              r'(?m)^version = ".*?"$',
+              f'version = "{version}"',
+              pyproject_text,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Could not update pyproject.toml version")
+          pyproject_path.write_text(pyproject_text, encoding="utf-8")
+
+          changelog_path = root / "CHANGELOG.md"
+          changelog_text = changelog_path.read_text(encoding="utf-8")
+          pending_heading = f"## [{version}] - Pending release"
+          released_heading = f"## [{version}] - {today}"
+          if pending_heading in changelog_text:
+              changelog_text = changelog_text.replace(pending_heading, released_heading, 1)
+          elif released_heading not in changelog_text:
+              marker = "## [Unreleased]\n\n"
+              if marker not in changelog_text:
+                  raise SystemExit("Could not locate Unreleased section in CHANGELOG.md")
+              insertion = (
+                  f"## [{version}] - {today}\n\n"
+                  "### Changed\n\n"
+                  "- Release workflow publication.\n\n"
+              )
+              changelog_text = changelog_text.replace(marker, marker + insertion, 1)
+          changelog_path.write_text(changelog_text, encoding="utf-8")
+          PY
+
+      - name: Validate release commit contents
+        run: |
+          python -m ruff check .
+          python -m mypy custom_components tests
+          python -m pytest --cov-report=xml:coverage.xml
+
+      - name: Commit release version bump
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md custom_components/wled_backupservice/manifest.json pyproject.toml
+          git commit -m "chore(release): ${RELEASE_VERSION}"
+
+      - name: Push release commit to invoking branch
+        run: git push origin HEAD:${GITHUB_REF_NAME}
+
+      - name: Create release tag
+        env:
+          RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version }}
+        run: |
+          git tag "v${RELEASE_VERSION}"
+          git push origin "v${RELEASE_VERSION}"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ inputs.version || github.event.inputs.version }}
+          RELEASE_TITLE: ${{ inputs.release_title || github.event.inputs.release_title }}
+          RELEASE_NOTES: ${{ inputs.release_notes || github.event.inputs.release_notes }}
+          PRERELEASE: ${{ inputs.prerelease || github.event.inputs.prerelease }}
+        run: |
+          TITLE="${RELEASE_TITLE}"
+          if [ -z "${TITLE}" ]; then
+            TITLE="v${RELEASE_VERSION}"
+          fi
+
+          EXTRA_ARGS=""
+          if [ "${PRERELEASE}" = "true" ]; then
+            EXTRA_ARGS="--prerelease"
+          fi
+
+          if [ -n "${RELEASE_NOTES}" ]; then
+            gh release create "v${RELEASE_VERSION}" --title "${TITLE}" --notes "${RELEASE_NOTES}" ${EXTRA_ARGS}
+          else
+            gh release create "v${RELEASE_VERSION}" --title "${TITLE}" --generate-notes ${EXTRA_ARGS}
+          fi

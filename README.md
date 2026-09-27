@@ -1,5 +1,11 @@
 # WLED Backup Service
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?logo=home-assistant&logoColor=white)](https://github.com/hacs/integration)
+[![GitHub Release](https://img.shields.io/github/v/release/tamaygz/hacs-wled-backupservice?display_name=tag&sort=semver)](https://github.com/tamaygz/hacs-wled-backupservice/releases)
+[![Test Gate](https://github.com/tamaygz/hacs-wled-backupservice/actions/workflows/tests.yml/badge.svg)](https://github.com/tamaygz/hacs-wled-backupservice/actions/workflows/tests.yml)
+[![Hassfest](https://github.com/tamaygz/hacs-wled-backupservice/actions/workflows/hassfest.yml/badge.svg)](https://github.com/tamaygz/hacs-wled-backupservice/actions/workflows/hassfest.yml)
+[![HACS Validation](https://github.com/tamaygz/hacs-wled-backupservice/actions/workflows/hacs.yml/badge.svg)](https://github.com/tamaygz/hacs-wled-backupservice/actions/workflows/hacs.yml)
+
 WLED Backup Service is a native Home Assistant custom integration that backs up,
 restores, prunes, and schedules backups for WLED devices already configured in Home
 Assistant's built-in `wled` integration.

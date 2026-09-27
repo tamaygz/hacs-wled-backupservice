@@ -60,13 +60,13 @@ Home Assistant ──▶ WLED Backup Service
 | 14 | [Translations & UI polish](14_translations_ui.md)                                  | ✅ Complete   | 04,10,11   | Flat runtime translations are live with selector labels, restore warnings, and a translation cross-check test |
 | 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ✅ Complete   | all above  | Shared WLED fixtures, cross-module tests, and an enforced 95% coverage gate are now live |
 | 16 | [CI, Hassfest & HACS validation](16_ci_validation.md)                             | ✅ Complete   | 15         | Manual/invocable GitHub workflows now cover Hassfest, HACS validation, and the lint/type/test gate |
-| 17 | [Documentation & release](17_documentation_release.md)                            | ⬜ Not started | 16         | README, info.md, quality_scale, GitHub release |
+| 17 | [Documentation & release](17_documentation_release.md)                            | 🔴 Blocked    | 16         | In-repo docs and release workflow are ready; external brands PR, hardware verification, and release publication remain |
 
 Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, and 16 are complete. The next eligible plan is 17.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, and 16 are complete. Plan 17 is partially complete in-repo and currently blocked on external release steps.
 
 ## Dependency overview
 
@@ -150,6 +150,11 @@ coverage gate, and fills any gaps.
   validation, and the lint/type/test gate. Per the updated execution contract, they are
   invocable via `workflow_dispatch` and `workflow_call` rather than auto-triggered on push
   or pull request.
+- Plan 17 now includes the repo-side release-preparation assets plus a branch-aware release
+  workflow that validates, bumps versions, updates changelog state, tags, and publishes a
+  GitHub release using HACS-friendly semantic version input. The remaining blockers are
+  external: brands submission, real-hardware preset-restore verification, and actually
+  publishing the first release.
 
 ## Procedural instructions for future agents
 
