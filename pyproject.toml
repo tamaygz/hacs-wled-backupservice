@@ -16,10 +16,12 @@ dev = [
     "pytest-cov>=4.1.0,<4.2.0",
     "pytest-homeassistant-custom-component==0.13.109",
     "ruff>=0.13.0,<0.14.0",
+    "tzdata>=2024.1",
 ]
 
 [tool.pytest.ini_options]
 addopts = "-q --cov=custom_components/wled_backupservice --cov-report=term-missing"
+asyncio_mode = "auto"
 pythonpath = ["."]
 testpaths = ["tests"]
 

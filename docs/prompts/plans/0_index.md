@@ -47,7 +47,7 @@ Home Assistant ──▶ WLED Backup Service
 | 01 | [Repository bootstrap & tooling](01_repository_bootstrap.md)                       | ✅ Complete   | —          | Repo scaffold, repo-local `.venv-py311`, smoke test, Ruff, and mypy all pass |
 | 02 | [Manifest, HACS metadata, branding, foundations](02_manifest_hacs_foundations.md) | ✅ Complete   | 01         | `manifest.json`, `hacs.json`, `const.py`, `exceptions.py`, and HACS repo branding placeholder are in place |
 | 03 | [Integration skeleton & lifecycle](03_integration_skeleton_lifecycle.md)          | ✅ Complete   | 02         | `__init__.py`, typed `runtime_data`, manager shell, service-registration stub, and lifecycle tests all pass |
-| 04 | [Config flow & options flow](04_config_options_flow.md)                            | ⬜ Not started | 03         | Single-instance config flow + full options flow + schema |
+| 04 | [Config flow & options flow](04_config_options_flow.md)                            | ✅ Complete   | 03         | Single-instance config flow, multi-step options flow, shared subdir validation, and >95% `config_flow.py` coverage validated |
 | 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ⬜ Not started | 03         | Discover via `wled` config entries + device registry |
 | 06 | [Async WLED client](06_wled_client.md)                                             | ⬜ Not started | 02         | `info`/`cfg`/`presets`/`state` GET + `cfg` POST + `/edit` upload |
 | 07 | [Storage service](07_storage_service.md)                                           | ⬜ Not started | 02         | Path validation, atomic writes, manifest + sha256 |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, and 03 are complete. The next eligible plan is 04.
+- Plans 01, 02, 03, and 04 are complete. The next eligible plan is 05.
 
 ## Dependency overview
 
@@ -99,6 +99,13 @@ coverage gate, and fills any gaps.
   coverage are more stable than full `hass`-fixture tests under
   `pytest-homeassistant-custom-component` because event-loop creation can trip the socket
   guard before the actual lifecycle code is exercised.
+- For Home Assistant flow tests on Windows in this repo, `pytest-asyncio` must run in
+  `auto` mode and the repo-local venv must include `tzdata`; otherwise the plugin's async
+  `hass` fixture either does not resolve correctly or fails while setting the default
+  `US/Pacific` timezone.
+- Plan 04 uses a version-compatibility split for options flows because the repo's pinned HA
+  version (`2024.3.3`) predates the auto-injected `OptionsFlow.config_entry` property that
+  became the forward-safe pattern in HA 2024.11+.
 
 ## Procedural instructions for future agents
 

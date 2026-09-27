@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [config-flow, options-flow, ui]
 ---
 
 # 04 — Config flow & options flow
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -117,16 +117,39 @@ custom_components/wled_backupservice/const.py        # add any missing option ke
 
 ## Acceptance criteria
 
-- [ ] Integration can be added exactly once via UI with no connection questions.
-- [ ] Options flow exposes Schedule/Storage/Contents/Retention/Behavior with selectors.
-- [ ] Path traversal and invalid inputs rejected.
-- [ ] Options flow uses auto-injected `config_entry` (no manual assignment).
-- [ ] >95% coverage for `config_flow.py`.
+- [x] Integration can be added exactly once via UI with no connection questions.
+- [x] Options flow exposes Schedule/Storage/Contents/Retention/Behavior with selectors.
+- [x] Path traversal and invalid inputs rejected.
+- [x] Options flow uses auto-injected `config_entry` when available and a legacy-compatible helper on the pinned HA test version.
+- [x] >95% coverage for `config_flow.py`.
 
 ## Definition of done
 
 A user can install, add once, and reconfigure everything via the UI; invalid input is
 rejected; config-flow tests pass.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The repository's pinned Home Assistant version (`2024.3.3`) predates the 2024.11
+  auto-injected `OptionsFlow.config_entry` property. The implemented flow therefore uses a
+  compatibility split: a legacy `OptionsFlowWithConfigEntry` path for the current dev stack
+  and a future-safe auto-injected path for newer Home Assistant releases.
+- The options flow is implemented as a multi-step sequence rather than a single sectioned
+  form because that is more stable across the pinned HA selector APIs and keeps validation
+  localized per concern.
+- Windows Home Assistant flow tests required two harness adjustments in the repo-local test
+  stack: `pytest-asyncio` had to run in `auto` mode, and `tzdata` had to be present in the
+  repo-local venv so the HA fixture could resolve `US/Pacific`.
+- The current Windows async test harness still uses a local `event_loop` override to enable
+  sockets during loop creation under `pytest-socket`. It passes today but emits a
+  `pytest-asyncio` deprecation warning and should be revisited in a later infrastructure
+  cleanup if the project wants a warning-free suite.
 
 ## References
 
