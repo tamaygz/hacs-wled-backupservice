@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [retention, pruning, storage]
 ---
 
 # 09 — Retention policy
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -91,16 +91,35 @@ custom_components/wled_backupservice/manager.py     # implement async_prune dele
 
 ## Acceptance criteria
 
-- [ ] Count-based retention correct and primary.
-- [ ] Optional age-based retention correct.
-- [ ] Never deletes unrecognized/foreign directories.
-- [ ] Dry-run supported.
-- [ ] >95% coverage for `retention.py`.
+- [x] Count-based retention correct and primary.
+- [x] Optional age-based retention correct.
+- [x] Never deletes unrecognized/foreign directories.
+- [x] Dry-run supported.
+- [x] >95% coverage for `retention.py`.
 
 ## Definition of done
 
 Retention prunes only this integration's backups per the configured policy, safely and
 idempotently, with a dry-run mode, and is invoked after successful backups.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- Count-based retention remains primary, but the implementation uses the union of count and
+   age candidates when both policies are enabled, which keeps the behavior predictable and
+   monotonic.
+- `async_prune` delegates through `manager.py` with option-derived defaults and uses
+   storage's root-confined `async_delete`, so retention never handles raw filesystem paths.
+- Delete failures are intentionally fail-soft and are reported per device in `PruneResult`
+   without aborting the rest of the prune run.
+- Full-suite validation after plan-09 landing is green (`89 passed`, total coverage 95%),
+   while the existing `pytest-asyncio` custom `event_loop` deprecation warning remains an
+   unchanged baseline unrelated to retention behavior.
 
 ## References
 

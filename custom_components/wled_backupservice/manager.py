@@ -15,10 +15,14 @@ from .const import (
     CFG_FILENAME,
     CONF_INCLUDE_PRESETS,
     CONF_INCLUDE_STATE,
+    CONF_RETENTION_COUNT,
+    CONF_RETENTION_DAYS,
     CONF_STORAGE_ROOT,
     CONF_SUBDIR,
     DEFAULT_INCLUDE_PRESETS,
     DEFAULT_INCLUDE_STATE,
+    DEFAULT_RETENTION_COUNT,
+    DEFAULT_RETENTION_DAYS,
     DEFAULT_STORAGE_ROOT,
     DEFAULT_SUBDIR,
     INFO_FILENAME,
@@ -193,7 +197,35 @@ class WLEDBackupManager:
 
     async def async_prune(self, *args: Any, **kwargs: Any) -> Any:
         """Prune old backups."""
-        raise NotImplementedError
+        del args
+        device = kwargs.pop("device", None)
+        dry_run = bool(kwargs.pop("dry_run", False))
+        if kwargs:
+            raise TypeError(f"Unexpected prune kwargs: {sorted(kwargs)}")
+
+        self._ensure_storage()
+        self._ensure_retention()
+        storage = self.storage
+        retention = self.retention
+        assert storage is not None
+        assert retention is not None
+        return await retention.async_prune_backups(
+            storage,
+            retention_count=int(
+                self.entry.options.get(
+                    CONF_RETENTION_COUNT,
+                    DEFAULT_RETENTION_COUNT,
+                )
+            ),
+            retention_days=int(
+                self.entry.options.get(
+                    CONF_RETENTION_DAYS,
+                    DEFAULT_RETENTION_DAYS,
+                )
+            ),
+            device=device,
+            dry_run=dry_run,
+        )
 
     async def async_discover_devices(self, *args: Any, **kwargs: Any) -> Any:
         """Discover WLED devices."""
@@ -239,6 +271,13 @@ class WLEDBackupManager:
                 ),
                 subdir=self.entry.options.get(CONF_SUBDIR, DEFAULT_SUBDIR),
             )
+
+    def _ensure_retention(self) -> None:
+        """Lazily wire the retention collaborator."""
+        if self.retention is None:
+            from . import retention as retention_module
+
+            self.retention = retention_module
 
     def _bool_option(
         self,

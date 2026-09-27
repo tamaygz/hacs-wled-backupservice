@@ -52,7 +52,7 @@ Home Assistant ──▶ WLED Backup Service
 | 06 | [Async WLED client](06_wled_client.md)                                             | ✅ Complete   | 02         | `wled_client.py` covers typed reads, write error mapping, `/edit` multipart upload, and >95% file coverage |
 | 07 | [Storage service](07_storage_service.md)                                           | ✅ Complete   | 02         | `storage.py` now enforces root containment, atomic stage→replace writes, manifest verification, and backup-id revalidation |
 | 08 | [Backup engine](08_backup_engine.md)                                               | ✅ Complete   | 05,06,07   | Manager now composes discovery, client, and storage into fail-soft per-device backups with structured results |
-| 09 | [Retention policy](09_retention.md)                                                | ⬜ Not started | 07,08      | Count + age retention, safe pruning |
+| 09 | [Retention policy](09_retention.md)                                                | ✅ Complete   | 07,08      | `retention.py` now applies count/age pruning safely with dry-run and fail-soft delete reporting |
 | 10 | [Services / actions registration](10_services_actions.md)                          | ⬜ Not started | 08,09      | `async_setup` registration, `services.yaml`, response data, targeting |
 | 11 | [Restore engine](11_restore_engine.md)                                             | ⬜ Not started | 06,07,08   | cfg + presets restore, safety backup, per-device lock, verify |
 | 12 | [Scheduler](12_scheduler.md)                                                       | ⬜ Not started | 08,09      | `async_track_time_interval` / daily time, no-overlap guard |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, and 08 are complete. The next eligible plan is 09.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, and 09 are complete. The next eligible plan is 10.
 
 ## Dependency overview
 
@@ -120,6 +120,9 @@ coverage gate, and fills any gaps.
   discovery/client/storage collaborators when needed. Backups run sequentially across
   devices today, with per-device locks preventing same-device overlap and `BackupResult`
   dataclasses now carrying structured outcome data for later service exposure.
+- Plan 09 adds safe retention pruning as a pure storage-backed operation: count is primary,
+  age is an optional secondary filter, deletes are fail-soft, and dry-run reporting is
+  available through structured `PruneResult` data.
 
 ## Procedural instructions for future agents
 
