@@ -18,7 +18,6 @@ backup:
       example: before-upgrade
 
 backup_all:
-  target: {}
   fields:
     include_presets:
       required: false
@@ -71,7 +70,6 @@ list_backups:
           step: 1
 
 delete_backup:
-  target: {}
   fields:
     backup_id:
       required: true
@@ -88,4 +86,3 @@ prune:
       example: true
 
 discover:
-  target: {}
