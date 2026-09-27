@@ -8,6 +8,7 @@ from pathlib import Path
 from homeassistant.exceptions import HomeAssistantError
 
 from custom_components.wled_backupservice import const, exceptions
+from custom_components.wled_backupservice.manager import INTEGRATION_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,7 +26,7 @@ def test_manifest_has_required_hacs_fields() -> None:
     assert manifest["codeowners"] == ["@tamaygz"]
     assert manifest["documentation"]
     assert manifest["issue_tracker"]
-    assert manifest["version"] == "1.0.0"
+    assert manifest["version"] == INTEGRATION_VERSION
     assert manifest["single_config_entry"] is True
 
 
