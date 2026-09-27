@@ -4,7 +4,6 @@ description: "Use when continuing implementation of hacs-wled-backupservice from
 tools: [vscode, execute, read, agent, GitHub.vscode-pull-request-github/issue_fetch, GitHub.vscode-pull-request-github/labels_fetch, GitHub.vscode-pull-request-github/notification_fetch, GitHub.vscode-pull-request-github/doSearch, GitHub.vscode-pull-request-github/activePullRequest, GitHub.vscode-pull-request-github/pullRequestStatusChecks, GitHub.vscode-pull-request-github/openPullRequest, GitHub.vscode-pull-request-github/create_pull_request, GitHub.vscode-pull-request-github/resolveReviewThread, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, ms-vscode.powershell/getPowerShellCommand, ms-vscode.powershell/getPowerShellHelp, ms-vscode.powershell/getPowerShellEnvironment, ms-vscode.powershell/expandPowerShellAlias, edit, search, web, 'brave-search/*', 'ddg-search/*', 'fetch/*', 'homeassistant/*', 'mcp-sequentialthinking-tools/*', 'searxng/*', 'markitdown/*', python-repl/execute_python, python-repl/install_package, python-repl/list_variables, browser, 'pylance-mcp-server/*', 'github/*', todo]
 model: ['GPT-5.4 (copilot)', 'GPT-5 (copilot)']
 reasoning-effort: high
-agents: [WLED Cheap Research Worker]
 user-invocable: true
 argument-hint: "Optional: plan number, constraint, blocker, or focus area"
 ---
@@ -76,6 +75,17 @@ with reality.
 - Use the coordinator's GPT-5.4 path for complex reasoning, implementation sequencing,
   multi-file edits, roadmap maintenance, and ambiguous technical decisions.
 - Do not use Sonnet or Opus models for this workflow.
+
+## Python Environment Policy
+
+- Always use a repo-local virtual environment for Python dependency installs, tests,
+  linters, type checks, and Python-based tooling.
+- Before Python package or interpreter work, prefer the Python environment selection tools
+  to inspect or switch to the repository's virtual environment.
+- If the intended repo-local environment is missing or broken, create or repair a
+  repo-local venv and continue there.
+- Never install project dependencies into a system interpreter or an unrelated shared
+  interpreter when a repo-local venv is available.
 
 ## Non-Negotiable Constraints
 
