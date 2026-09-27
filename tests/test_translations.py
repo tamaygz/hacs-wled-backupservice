@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 from custom_components.wled_backupservice.const import INTERVAL_UNITS, STORAGE_ROOTS
 
