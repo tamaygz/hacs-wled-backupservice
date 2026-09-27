@@ -1,0 +1,57 @@
+[project]
+name = "hacs-wled-backupservice"
+version = "0.0.0"
+description = "Development tooling configuration for the WLED Backup Service custom integration"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "aioresponses>=0.7.8,<0.8.0",
+    "homeassistant==2024.3.3", # TODO: Reconcile with the minimum HA version chosen in plan 02 once the local Python/toolchain supports newer HA releases.
+    "mypy>=1.18.0,<1.19.0",
+    "pytest>=8.0.2,<8.1.0",
+    "pytest-asyncio>=0.23.5,<0.24.0",
+    "pytest-cov>=4.1.0,<4.2.0",
+    "pytest-homeassistant-custom-component==0.13.109",
+    "ruff>=0.13.0,<0.14.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q --cov=custom_components/wled_backupservice --cov-report=term-missing"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["custom_components/wled_backupservice"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "B",
+]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+files = ["custom_components", "tests"]
+ignore_missing_imports = true
+show_error_codes = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
