@@ -29,9 +29,9 @@ partial-result reporting.
 
 - Home Assistant version declared in [hacs.json](hacs.json): `2025.12.0` or newer.
 - One or more WLED devices already configured through Home Assistant's native `wled`
-	integration.
+  integration.
 - A trusted storage location under one of Home Assistant's supported roots: `/share`,
-	`/media`, `/backup`, or `/config`.
+  `/media`, `/backup`, or `/config`.
 
 ## Installation
 
@@ -115,21 +115,21 @@ Backups are stored as validated directories with a manifest and file hashes:
 
 ```text
 <storage-root>/<subdir>/<device_name>_<device_id>/YYYY/MM/DD/HHMMSS/
-	manifest.json
-	cfg.json
-	info.json
-	presets.json        # optional
-	state.json          # optional
+  manifest.json
+  cfg.json
+  info.json
+  presets.json        # optional
+  state.json          # optional
 ```
 
 Example:
 
 ```text
 /share/wled_backups/Kitchen_Strip_wled-aabbccddeeff/2026/09/27/083336/
-	manifest.json
-	cfg.json
-	info.json
-	presets.json
+  manifest.json
+  cfg.json
+  info.json
+  presets.json
 ```
 
 ## Home Assistant Actions

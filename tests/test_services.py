@@ -420,7 +420,16 @@ async def test_resolve_target_device_errors_use_translation_keys(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    await _register_services(hass)
     device = _make_device()
+    manager = FakeManager(
+        backup_result=_make_backup_result(),
+        backup_all_results=[],
+        backups=[],
+        prune_result=_make_prune_result(),
+        devices=[device],
+    )
+    _add_runtime_entry(hass, manager)
 
     monkeypatch.setattr(
         services_module,
@@ -435,14 +444,19 @@ async def test_resolve_target_device_errors_use_translation_keys(
     )
 
     with pytest.raises(WLEDValidationError) as exc_info:
-        await services_module._resolve_devices_or_raise(
-            hass,
-            type("Call", (), {"data": {}, "target": {}})(),
-            required=False,
+        await hass.services.async_call(
+            DOMAIN,
+            services_module.SERVICE_PRUNE,
+            service_data={"device_id": [device.ha_device_id]},
+            blocking=True,
+            return_response=True,
         )
 
     assert exc_info.value.translation_domain == DOMAIN
     assert exc_info.value.translation_key == "invalid_device_target"
+
+
+@pytest.mark.asyncio
 async def test_restore_action_returns_response_when_manager_supports_it(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,

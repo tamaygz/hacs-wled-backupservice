@@ -22,7 +22,7 @@ from homeassistant.const import CONF_HOST
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr
 
-from .const import LOGGER, WLED_DOMAIN
+from .const import DOMAIN, LOGGER, WLED_DOMAIN
 from .exceptions import WLEDValidationError
 
 
@@ -96,7 +96,7 @@ async def async_resolve_target_devices(
             hass, registry_device
         ):
             raise WLEDValidationError(
-                translation_domain="wled_backupservice",
+                translation_domain=DOMAIN,
                 translation_key="invalid_device_target",
                 translation_placeholders={"target": target_device_id},
             )
@@ -104,7 +104,7 @@ async def async_resolve_target_devices(
         resolved_device = devices_by_ha_id.get(target_device_id)
         if resolved_device is None:
             raise WLEDValidationError(
-                translation_domain="wled_backupservice",
+                translation_domain=DOMAIN,
                 translation_key="unresolved_device_target",
                 translation_placeholders={"target": target_device_id},
             )
