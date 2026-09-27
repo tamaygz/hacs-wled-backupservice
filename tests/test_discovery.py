@@ -291,6 +291,115 @@ def test_async_resolve_target_devices_returns_targeted_wled_devices(
     ]
 
 
+def test_find_registry_device_prefers_scoped_identifier_lookup(
+    socket_enabled: None,
+) -> None:
+    """Discovery should use newer scoped identifier lookups when available."""
+    _ = socket_enabled
+    entry = _make_entry("entry-one", "10.0.0.10", "aabbccddeeff", "Kitchen")
+    registry_device = _make_registry_device(
+        "ha-device-one",
+        entry_id="entry-one",
+        mac="aabbccddeeff",
+        name="Kitchen",
+    )
+
+    registry = SimpleNamespace(
+        async_get_device_by_identifier=lambda identifier, entry_id: (
+            registry_device
+            if identifier == ("wled", "aabbccddeeff") and entry_id == "entry-one"
+            else None
+        ),
+        async_get_device=lambda **kwargs: pytest.fail("fallback lookup should not run"),
+    )
+
+    from custom_components.wled_backupservice.discovery import _find_registry_device
+
+    assert _find_registry_device(registry, entry, "aabbccddeeff") is registry_device
+
+
+def test_find_registry_device_falls_back_when_scoped_helpers_reject_signature(
+    socket_enabled: None,
+) -> None:
+    """Discovery should fall back to async_get_device on older helper signatures."""
+    _ = socket_enabled
+    entry = _make_entry("entry-one", "10.0.0.10", "aabbccddeeff", "Kitchen")
+    registry_device = _make_registry_device(
+        "ha-device-one",
+        entry_id="entry-one",
+        mac="aabbccddeeff",
+        name="Kitchen",
+    )
+
+    class LegacyRegistry(FakeDeviceRegistry):
+        def async_get_device_by_identifier(
+            self,
+            _identifier: object,
+            _entry_id: object,
+        ) -> None:
+            raise TypeError
+
+        def async_get_device_by_connection(
+            self,
+            _connection: object,
+            _entry_id: object,
+        ) -> None:
+            raise TypeError
+
+    registry = LegacyRegistry([registry_device])
+
+    from custom_components.wled_backupservice.discovery import _find_registry_device
+
+    assert _find_registry_device(registry, entry, "aabbccddeeff") is registry_device
+
+
+def test_async_resolve_target_devices_supports_target_block_and_unresolved_targets(
+    socket_enabled: None,
+) -> None:
+    """Target extraction should honor `target.device_id` and unresolved matches."""
+    _ = socket_enabled
+    entry = _make_entry("entry-one", "10.0.0.10", "aabbccddeeff", "Kitchen")
+    hass = SimpleNamespace(config_entries=FakeConfigEntries([entry]))
+    registry = FakeDeviceRegistry(
+        [
+            _make_registry_device(
+                "ha-device-one",
+                entry_id="entry-one",
+                mac="aabbccddeeff",
+                name="Kitchen",
+            )
+        ]
+    )
+    call = SimpleNamespace(data={"target": {"device_id": ["ha-device-one"]}})
+
+    from custom_components.wled_backupservice import discovery
+
+    async def _discover_without_ha_id(_hass: object) -> list[WLEDDevice]:
+        return [
+            WLEDDevice(
+                device_id="aabbccddeeff",
+                name="Kitchen",
+                host="10.0.0.10",
+                mac="aabbccddeeff",
+                ha_device_id=None,
+                ha_config_entry_id="entry-one",
+                firmware_version=None,
+            )
+        ]
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(discovery.dr, "async_get", lambda _hass: registry)
+        monkeypatch.setattr(
+            discovery,
+            "async_discover_wled_devices",
+            _discover_without_ha_id,
+        )
+        with pytest.raises(WLEDValidationError) as exc_info:
+            asyncio.run(async_resolve_target_devices(hass, call))
+
+    assert exc_info.value.translation_key == "unresolved_device_target"
+
+
 def test_sanitize_host_creates_stable_fallback_identity() -> None:
     """Host fallback identities should be lowercase and separator-safe."""
     assert _sanitize_host("WLED-Local_01") == "wled_local_01"

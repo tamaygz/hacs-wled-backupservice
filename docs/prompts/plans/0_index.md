@@ -58,7 +58,7 @@ Home Assistant ──▶ WLED Backup Service
 | 12 | [Scheduler](12_scheduler.md)                                                       | ✅ Complete   | 08,09      | HA-native interval/daily scheduling is live with tracked background tasks, skip-on-overlap, and post-cycle prune |
 | 13 | [Diagnostics](13_diagnostics.md)                                                   | ✅ Complete   | 03,08      | Redacted config-entry diagnostics are live with masked device metadata, backup counts, and runtime state |
 | 14 | [Translations & UI polish](14_translations_ui.md)                                  | ✅ Complete   | 04,10,11   | Flat runtime translations are live with selector labels, restore warnings, and a translation cross-check test |
-| 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ⬜ Not started | all above  | Cross-cutting fixtures, coverage >95%, gap-filling |
+| 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ✅ Complete   | all above  | Shared WLED fixtures, cross-module tests, and an enforced 95% coverage gate are now live |
 | 16 | [CI, Hassfest & HACS validation](16_ci_validation.md)                             | ⬜ Not started | 15         | GitHub Actions: hassfest, HACS action, tests |
 | 17 | [Documentation & release](17_documentation_release.md)                            | ⬜ Not started | 16         | README, info.md, quality_scale, GitHub release |
 
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, and 14 are complete. The next eligible plan is 15.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, and 15 are complete. The next eligible plan is 16.
 
 ## Dependency overview
 
@@ -140,8 +140,12 @@ coverage gate, and fills any gaps.
   `strings.json`, selector labels for options-flow dropdowns, explicit destructive restore
   warnings, translated service/discovery exception messages, and a cross-check test that
   verifies current config/options/service keys are all present in the shipped English text.
-- Full-suite validation after plan 14 is green (`121 passed`, `ruff check .`, and
-  `mypy custom_components tests`).
+- Plan 15 adds realistic WLED fixture payloads, shared pytest fixtures, compatibility/error-
+  path coverage for discovery and storage, a cross-module manager/storage roundtrip test,
+  and an enforced coverage gate. It also fixed a real restore deadlock in the safety-backup
+  path that the new testing slice exposed.
+- Full-suite validation after plan 15 is green (`129 passed`, `ruff check .`, and
+  `mypy custom_components tests`), with required coverage enforced at 96.26%.
 
 ## Procedural instructions for future agents
 

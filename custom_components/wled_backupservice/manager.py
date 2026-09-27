@@ -147,91 +147,12 @@ class WLEDBackupManager:
 
         lock = self._async_get_device_lock(device.device_id)
         async with lock:
-            include_presets_value = self._bool_option(
-                CONF_INCLUDE_PRESETS,
-                DEFAULT_INCLUDE_PRESETS,
-                include_presets,
+            return await self._async_backup_device_locked(
+                device,
+                include_presets=include_presets,
+                include_state=include_state,
+                record_runtime_state=record_runtime_state,
             )
-            include_state_value = self._bool_option(
-                CONF_INCLUDE_STATE,
-                DEFAULT_INCLUDE_STATE,
-                include_state,
-            )
-
-            try:
-                client_factory = self.client_factory
-                storage = self.storage
-                assert client_factory is not None
-                assert storage is not None
-
-                client = client_factory(device.host)
-                info = await client.async_get_info()
-                self._validate_verified_info(device, info)
-
-                files = {
-                    CFG_FILENAME: self._json_bytes(await client.async_get_config()),
-                    INFO_FILENAME: self._json_bytes(asdict(info)),
-                }
-                if include_presets_value:
-                    files[PRESETS_FILENAME] = await client.async_get_presets_raw()
-                if include_state_value:
-                    files[STATE_FILENAME] = self._json_bytes(
-                        await client.async_get_state()
-                    )
-
-                verified_mac = device.mac or info.mac_address
-                verified_device_id = (
-                    info.device_id or info.mac_address or device.device_id
-                )
-                if device.mac and info.mac_address and info.mac_address != device.mac:
-                    LOGGER.warning(
-                        "Discovered MAC %s for %s differs from verified MAC %s",
-                        device.mac,
-                        device.name,
-                        info.mac_address,
-                    )
-
-                backup = await storage.async_write_backup(
-                    device_name=device.name,
-                    host=device.host,
-                    device_id=verified_device_id,
-                    mac=verified_mac,
-                    firmware_version=info.version,
-                    files=files,
-                )
-                result = BackupResult(
-                    device_id=backup.device.device_id,
-                    device_name=backup.device.name,
-                    success=True,
-                    backup_id=backup.backup_id,
-                    path=backup.path,
-                    files=tuple(file_record.name for file_record in backup.files),
-                    created_at=backup.created_at,
-                    error=None,
-                )
-                LOGGER.info(
-                    "Created WLED backup for %s at %s",
-                    device.name,
-                    backup.backup_id,
-                )
-                if record_runtime_state:
-                    self._record_backup_results([result])
-                return result
-            except WLEDBackupError as err:
-                LOGGER.warning("Backup failed for %s: %s", device.name, err)
-                result = BackupResult(
-                    device_id=device.device_id,
-                    device_name=device.name,
-                    success=False,
-                    backup_id=None,
-                    path=None,
-                    files=(),
-                    created_at=None,
-                    error=str(err),
-                )
-                if record_runtime_state:
-                    self._record_backup_results([result])
-                return result
 
     async def async_backup_all(
         self,
@@ -326,7 +247,14 @@ class WLEDBackupManager:
 
             safety_backup_id: str | None = None
             if backup_before_restore:
-                safety_backup = await self.async_backup_device(device)
+                backup_callable = self.async_backup_device
+                if (
+                    getattr(backup_callable, "__func__", None)
+                    is WLEDBackupManager.async_backup_device
+                ):
+                    safety_backup = await self._async_backup_device_locked(device)
+                else:
+                    safety_backup = await backup_callable(device)
                 if not safety_backup.success or safety_backup.backup_id is None:
                     raise WLEDRestoreError(
                         f"Safety backup failed for {device.name}: "
@@ -513,6 +441,99 @@ class WLEDBackupManager:
             from . import discovery as discovery_module
 
             self.discovery = discovery_module
+
+    async def _async_backup_device_locked(
+        self,
+        device: Any,
+        *,
+        include_presets: bool | None = None,
+        include_state: bool | None = None,
+        record_runtime_state: bool = True,
+    ) -> BackupResult:
+        """Perform a single-device backup while the device lock is already held."""
+        include_presets_value = self._bool_option(
+            CONF_INCLUDE_PRESETS,
+            DEFAULT_INCLUDE_PRESETS,
+            include_presets,
+        )
+        include_state_value = self._bool_option(
+            CONF_INCLUDE_STATE,
+            DEFAULT_INCLUDE_STATE,
+            include_state,
+        )
+
+        try:
+            client_factory = self.client_factory
+            storage = self.storage
+            assert client_factory is not None
+            assert storage is not None
+
+            client = client_factory(device.host)
+            info = await client.async_get_info()
+            self._validate_verified_info(device, info)
+
+            files = {
+                CFG_FILENAME: self._json_bytes(await client.async_get_config()),
+                INFO_FILENAME: self._json_bytes(asdict(info)),
+            }
+            if include_presets_value:
+                files[PRESETS_FILENAME] = await client.async_get_presets_raw()
+            if include_state_value:
+                files[STATE_FILENAME] = self._json_bytes(
+                    await client.async_get_state()
+                )
+
+            verified_mac = device.mac or info.mac_address
+            verified_device_id = info.device_id or info.mac_address or device.device_id
+            if device.mac and info.mac_address and info.mac_address != device.mac:
+                LOGGER.warning(
+                    "Discovered MAC %s for %s differs from verified MAC %s",
+                    device.mac,
+                    device.name,
+                    info.mac_address,
+                )
+
+            backup = await storage.async_write_backup(
+                device_name=device.name,
+                host=device.host,
+                device_id=verified_device_id,
+                mac=verified_mac,
+                firmware_version=info.version,
+                files=files,
+            )
+            result = BackupResult(
+                device_id=backup.device.device_id,
+                device_name=backup.device.name,
+                success=True,
+                backup_id=backup.backup_id,
+                path=backup.path,
+                files=tuple(file_record.name for file_record in backup.files),
+                created_at=backup.created_at,
+                error=None,
+            )
+            LOGGER.info(
+                "Created WLED backup for %s at %s",
+                device.name,
+                backup.backup_id,
+            )
+            if record_runtime_state:
+                self._record_backup_results([result])
+            return result
+        except WLEDBackupError as err:
+            LOGGER.warning("Backup failed for %s: %s", device.name, err)
+            result = BackupResult(
+                device_id=device.device_id,
+                device_name=device.name,
+                success=False,
+                backup_id=None,
+                path=None,
+                files=(),
+                created_at=None,
+                error=str(err),
+            )
+            if record_runtime_state:
+                self._record_backup_results([result])
+            return result
 
     def _ensure_client_factory(self) -> None:
         """Lazily wire the WLED client factory."""

@@ -599,3 +599,34 @@ def test_write_backup_detects_existing_final_directory_and_normalizes_naive_date
         )
     )
     assert backup.created_at.tzinfo is UTC
+
+
+def test_read_backup_file_rejects_unknown_file_and_empty_manifest_entries(
+    tmp_path: Path,
+    socket_enabled: None,
+) -> None:
+    """Read helpers should reject unknown files and manifests without file entries."""
+    _ = socket_enabled
+    storage = _make_storage(tmp_path)
+    backup = asyncio.run(
+        storage.async_write_backup(
+            device_name="Kitchen",
+            host="10.0.0.10",
+            device_id="aabbccddeeff",
+            mac="aabbccddeeff",
+            firmware_version=None,
+            files={"cfg.json": b"{}"},
+            created_at=datetime(2026, 9, 27, 2, 43, 4, tzinfo=UTC),
+        )
+    )
+
+    with pytest.raises(WLEDStorageError, match="does not contain file"):
+        asyncio.run(storage.async_read_backup_file(backup.backup_id, "presets.json"))
+
+    manifest_path = backup.path / "manifest.json"
+    manifest = __import__("json").loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"] = []
+    manifest_path.write_text(__import__("json").dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(WLEDStorageError, match="does not list any files"):
+        asyncio.run(storage.async_read_backup(backup.backup_id))

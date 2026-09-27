@@ -1,0 +1,55 @@
+{
+  "0": {},
+  "1": {
+    "n": "Warm White",
+    "on": true,
+    "bri": 180,
+    "ps": 0,
+    "playlist": null,
+    "seg": [
+      {
+        "id": 0,
+        "start": 0,
+        "stop": 150,
+        "col": [
+          [255, 160, 64],
+          [0, 0, 0],
+          [0, 0, 0]
+        ],
+        "fx": 0,
+        "sx": 128,
+        "ix": 128
+      }
+    ]
+  },
+  "2": {
+    "n": "API Scene",
+    "on": true,
+    "playlist": {
+      "repeat": 0,
+      "end": 0,
+      "r": 0,
+      "ps": [1]
+    },
+    "win": "&FX=67&SX=180&IX=90&A=200"
+  },
+  "3": {
+    "n": "Large Gradient",
+    "on": true,
+    "bri": 255,
+    "seg": [
+      {
+        "id": 0,
+        "start": 0,
+        "stop": 150,
+        "pal": 11,
+        "fx": 65,
+        "sx": 200,
+        "ix": 180,
+        "c1": 128,
+        "c2": 64,
+        "c3": 32
+      }
+    ]
+  }
+}

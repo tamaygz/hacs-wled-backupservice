@@ -1,0 +1,10 @@
+{
+  "brand": "WLED",
+  "product": "FOSS",
+  "name": "Kitchen Strip",
+  "ver": "0.16.0",
+  "arch": "esp32",
+  "vid": 2601010,
+  "mac": "aabbccddeeff",
+  "deviceId": "wled-aabbccddeeff"
+}

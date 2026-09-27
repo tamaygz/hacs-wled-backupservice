@@ -1,0 +1,22 @@
+{
+  "wifi": {
+    "hostname": "kitchen-strip",
+    "mdns": true
+  },
+  "leds": {
+    "count": 150,
+    "rgbwm": 0,
+    "maxpwr": 850
+  },
+  "if": {
+    "live": {
+      "no-gc": false
+    }
+  },
+  "interfaces": {
+    "mqtt": {
+      "en": false,
+      "broker": "mqtt.local"
+    }
+  }
+}

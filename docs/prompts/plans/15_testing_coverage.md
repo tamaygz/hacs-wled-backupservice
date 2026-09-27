@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [testing, coverage, fixtures]
 ---
 
 # 15 — Testing & coverage gate
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -85,15 +85,37 @@ pyproject.toml                   # coverage fail_under = 95
 
 ## Acceptance criteria
 
-- [ ] Coverage >95% for integration code, gate enforced in config.
-- [ ] Shared fixtures + realistic WLED fixtures present.
-- [ ] End-to-end test passes.
-- [ ] No network / no blocking-I/O in tests.
+- [x] Coverage >95% for integration code, gate enforced in config.
+- [x] Shared fixtures + realistic WLED fixtures present.
+- [x] End-to-end test passes.
+- [x] No network / no blocking-I/O in tests.
 
 ## Definition of done
 
 The suite comprehensively covers the integration at >95% with an enforced gate, shared
 fixtures, and an end-to-end scenario, all offline.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The repo now ships realistic WLED payload fixtures in `tests/fixtures/info.json`,
+   `tests/fixtures/cfg.json`, and `tests/fixtures/presets.json`, plus shared fixture loaders
+   and a reusable integration-entry fixture in `tests/conftest.py`.
+- The end-to-end coverage slice settled on a manager-plus-real-storage roundtrip instead of a
+   full Home Assistant service harness to stay stable on Windows while still exercising
+   backup, list, restore, and prune across module boundaries.
+- Coverage work exposed a real restore-engine defect: `async_restore()` held the per-device
+   lock and then called `async_backup_device()` for the safety backup, which deadlocked on the
+   same lock. The fix now uses a lock-aware backup helper for the default path while still
+   preserving the `async_backup_device` monkeypatch seam used by tests.
+- `pyproject.toml` now enforces `fail_under = 95` under `[tool.coverage.report]`.
+- Full-suite validation after plan 15 is green (`129 passed`, `ruff check .`, and
+   `mypy custom_components tests`), and coverage is enforced at 96.26%.
 
 ## References
 
