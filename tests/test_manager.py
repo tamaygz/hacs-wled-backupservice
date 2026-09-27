@@ -718,7 +718,7 @@ def test_ensure_storage_uses_entry_options(monkeypatch: pytest.MonkeyPatch) -> N
     assert captured["hass"] is manager.hass
     assert captured["storage_root"] == "backup"
     assert captured["subdir"] == "custom_backups"
-    assert captured["integration_version"] == "1.0.0"
+    assert captured["integration_version"] == manager_module.INTEGRATION_VERSION
 
 
 @pytest.mark.asyncio
