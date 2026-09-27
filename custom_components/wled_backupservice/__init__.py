@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .manager import WLEDBackupConfigEntry, WLEDBackupManager
 from .services import async_register_services
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema("wled_backupservice")
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -41,7 +44,7 @@ async def async_unload_entry(
 
 
 async def async_migrate_entry(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: WLEDBackupConfigEntry
 ) -> bool:
     """Migrate older config entries to the current version."""
     del hass, entry
@@ -51,5 +54,5 @@ async def async_migrate_entry(
 async def _async_update_listener(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
-    """Reload the config entry when options change."""
+    """Reload the integration when options change."""
     await hass.config_entries.async_reload(entry.entry_id)
