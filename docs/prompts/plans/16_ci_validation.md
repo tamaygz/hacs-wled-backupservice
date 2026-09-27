@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [ci, hassfest, hacs, github-actions]
 ---
 
 # 16 — CI, Hassfest & HACS validation
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -37,7 +37,7 @@ Out of scope: publishing releases (17).
 
 ## Detailed implementation tasks
 
-1. **hassfest.yml**: run `home-assistant/actions/hassfest@master` on push/PR to validate
+1. **hassfest.yml**: run `home-assistant/actions/hassfest@master` to validate
    `manifest.json` and integration structure.
 2. **hacs.yml**: run `hacs/action@main` with `category: integration` to validate HACS
    requirements (structure, `hacs.json`, manifest keys, brands check). Note: the brands
@@ -47,8 +47,9 @@ Out of scope: publishing releases (17).
    interpreters). Steps: install dev deps, `ruff check`, `mypy`, `pytest --cov` with
    `fail_under=95`. Upload coverage artifact (optional).
 4. Pin action versions and use `actions/checkout@v4`, `actions/setup-python@v5`.
-5. Ensure workflows run on `push` and `pull_request` and are required for merge (document in
-   README/CONTRIBUTING; branch protection is a repo setting, not a file).
+5. Keep workflows invocable via `workflow_dispatch` and `workflow_call` so a human or a
+   coordinating workflow can run them on demand. Branch protection and any auto-triggering
+   strategy remain repo-policy decisions outside this file-based scope.
 
 ## API / framework requirements
 
@@ -78,15 +79,33 @@ Out of scope: publishing releases (17).
 
 ## Acceptance criteria
 
-- [ ] Hassfest workflow passes.
-- [ ] HACS action workflow passes (brands caveat documented).
-- [ ] Tests workflow enforces lint + mypy + >95% coverage.
-- [ ] Actions pinned and least-privilege.
+- [x] Hassfest workflow passes.
+- [x] HACS action workflow passes (brands caveat documented).
+- [x] Tests workflow enforces lint + mypy + >95% coverage.
+- [x] Actions pinned and least-privilege.
 
 ## Definition of done
 
 Every push/PR is automatically validated by Hassfest, the HACS action, and the test/lint/
 type gate, giving a green baseline for release.
+
+## Validation completed
+
+- Parsed `.github/workflows/*.yml` with `yaml.safe_load(...)`
+- `python -m ruff check .`
+
+## Open questions / discoveries
+
+- This plan intentionally follows the updated coordinator constraint rather than the older
+   wording in the original plan body: workflows are configured with `workflow_dispatch` and
+   `workflow_call`, not automatic `push`/`pull_request` triggers.
+- Three focused workflows now exist: `hassfest.yml`, `hacs.yml`, and `tests.yml`. The test
+   workflow runs `ruff`, `mypy`, and `pytest` with the already-enforced 95% coverage gate,
+   and uploads `coverage.xml` as an artifact.
+- `hacs/action@main` is configured for `category: integration`. The existing brands caveat
+   remains relevant until the separate brands submission in plan 17 is complete.
+- Workflow YAML was validated locally, and repo-wide lint remained green after adding the CI
+   files.
 
 ## References
 

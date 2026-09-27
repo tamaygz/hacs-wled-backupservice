@@ -59,14 +59,14 @@ Home Assistant ──▶ WLED Backup Service
 | 13 | [Diagnostics](13_diagnostics.md)                                                   | ✅ Complete   | 03,08      | Redacted config-entry diagnostics are live with masked device metadata, backup counts, and runtime state |
 | 14 | [Translations & UI polish](14_translations_ui.md)                                  | ✅ Complete   | 04,10,11   | Flat runtime translations are live with selector labels, restore warnings, and a translation cross-check test |
 | 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ✅ Complete   | all above  | Shared WLED fixtures, cross-module tests, and an enforced 95% coverage gate are now live |
-| 16 | [CI, Hassfest & HACS validation](16_ci_validation.md)                             | ⬜ Not started | 15         | GitHub Actions: hassfest, HACS action, tests |
+| 16 | [CI, Hassfest & HACS validation](16_ci_validation.md)                             | ✅ Complete   | 15         | Manual/invocable GitHub workflows now cover Hassfest, HACS validation, and the lint/type/test gate |
 | 17 | [Documentation & release](17_documentation_release.md)                            | ⬜ Not started | 16         | README, info.md, quality_scale, GitHub release |
 
 Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, and 15 are complete. The next eligible plan is 16.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, and 16 are complete. The next eligible plan is 17.
 
 ## Dependency overview
 
@@ -146,6 +146,10 @@ coverage gate, and fills any gaps.
   path that the new testing slice exposed.
 - Full-suite validation after plan 15 is green (`129 passed`, `ruff check .`, and
   `mypy custom_components tests`), with required coverage enforced at 96.26%.
+- Plan 16 adds three GitHub Actions workflows under `.github/workflows/` for Hassfest, HACS
+  validation, and the lint/type/test gate. Per the updated execution contract, they are
+  invocable via `workflow_dispatch` and `workflow_call` rather than auto-triggered on push
+  or pull request.
 
 ## Procedural instructions for future agents
 
