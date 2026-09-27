@@ -5,33 +5,45 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import asdict
+from datetime import datetime, time, timedelta
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import event
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CFG_FILENAME,
     CONF_BACKUP_BEFORE_RESTORE,
+    CONF_DAILY_TIME,
     CONF_INCLUDE_PRESETS,
     CONF_INCLUDE_STATE,
+    CONF_INTERVAL,
+    CONF_INTERVAL_UNIT,
     CONF_REBOOT_AFTER_RESTORE,
     CONF_RETENTION_COUNT,
     CONF_RETENTION_DAYS,
+    CONF_SCHEDULE_ENABLED,
     CONF_STORAGE_ROOT,
     CONF_SUBDIR,
     CONF_VERIFY_AFTER_RESTORE,
     DEFAULT_BACKUP_BEFORE_RESTORE,
+    DEFAULT_DAILY_TIME,
     DEFAULT_INCLUDE_PRESETS,
     DEFAULT_INCLUDE_STATE,
+    DEFAULT_INTERVAL,
+    DEFAULT_INTERVAL_UNIT,
     DEFAULT_REBOOT_AFTER_RESTORE,
     DEFAULT_RETENTION_COUNT,
     DEFAULT_RETENTION_DAYS,
+    DEFAULT_SCHEDULE_ENABLED,
     DEFAULT_STORAGE_ROOT,
     DEFAULT_SUBDIR,
     DEFAULT_VERIFY_AFTER_RESTORE,
     INFO_FILENAME,
+    INTERVAL_UNIT_DAYS,
     LOGGER,
     PRESETS_FILENAME,
     STATE_FILENAME,
@@ -57,6 +69,7 @@ class WLEDBackupManager:
         self.storage: Any | None = None
         self.retention: Any | None = None
         self.scheduler_unsub: Any | None = None
+        self.scheduled_cycle_task: asyncio.Task[Any] | None = None
         self.locks: dict[str, asyncio.Lock] = {}
         self.is_setup = False
         self.is_shutdown = False
@@ -65,11 +78,38 @@ class WLEDBackupManager:
         """Set up manager state."""
         self.is_setup = True
         self.is_shutdown = False
+        self._async_clear_scheduler_listener()
+        self._async_setup_scheduler()
 
     async def async_shutdown(self) -> None:
         """Tear down manager state."""
+        self._async_clear_scheduler_listener()
         self.is_shutdown = True
-        self.scheduler_unsub = None
+        self.scheduled_cycle_task = None
+
+    async def async_run_scheduled_cycle(self) -> None:
+        """Run a scheduled backup cycle and prune afterward."""
+        results = await self.async_backup_all(
+            include_presets=self._bool_option(
+                CONF_INCLUDE_PRESETS,
+                DEFAULT_INCLUDE_PRESETS,
+                None,
+            ),
+            include_state=self._bool_option(
+                CONF_INCLUDE_STATE,
+                DEFAULT_INCLUDE_STATE,
+                None,
+            ),
+        )
+        await self.async_prune()
+
+        success_count = sum(1 for result in results if result.success)
+        failure_count = len(results) - success_count
+        LOGGER.info(
+            "Scheduled WLED backup cycle finished: %s succeeded, %s failed",
+            success_count,
+            failure_count,
+        )
 
     async def async_backup_device(
         self,
@@ -492,3 +532,104 @@ class WLEDBackupManager:
     def _json_bytes(self, payload: dict[str, Any]) -> bytes:
         """Serialize a JSON object to stable UTF-8 bytes for backup storage."""
         return json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
+
+    def _async_setup_scheduler(self) -> None:
+        """Register the configured scheduler callback."""
+        if not self._bool_option(
+            CONF_SCHEDULE_ENABLED,
+            DEFAULT_SCHEDULE_ENABLED,
+            None,
+        ):
+            return
+
+        daily_time = self._schedule_daily_time()
+        if self._uses_daily_schedule(daily_time):
+            assert daily_time is not None
+            self.scheduler_unsub = event.async_track_time_change(
+                self.hass,
+                self._async_handle_scheduled_tick,
+                hour=daily_time.hour,
+                minute=daily_time.minute,
+                second=daily_time.second,
+            )
+            LOGGER.info(
+                "Registered daily WLED backup schedule at %02d:%02d:%02d",
+                daily_time.hour,
+                daily_time.minute,
+                daily_time.second,
+            )
+        else:
+            interval = self._schedule_interval()
+            self.scheduler_unsub = event.async_track_time_interval(
+                self.hass,
+                self._async_handle_scheduled_tick,
+                interval,
+            )
+            LOGGER.info("Registered interval WLED backup schedule for %s", interval)
+
+        self.entry.async_on_unload(self._async_clear_scheduler_listener)
+
+    @callback
+    def _async_clear_scheduler_listener(self) -> None:
+        """Remove the active scheduler listener, if any."""
+        if self.scheduler_unsub is None:
+            return
+        self.scheduler_unsub()
+        self.scheduler_unsub = None
+
+    @callback
+    def _async_handle_scheduled_tick(self, now: datetime) -> None:
+        """Start the scheduled backup cycle if none is already running."""
+        del now
+        if (
+            self.scheduled_cycle_task is not None
+            and not self.scheduled_cycle_task.done()
+        ):
+            LOGGER.info(
+                "Skipping scheduled WLED backup cycle because a previous cycle "
+                "is still running"
+            )
+            return
+
+        task = self.entry.async_create_background_task(
+            self.hass,
+            self.async_run_scheduled_cycle(),
+            "wled_backupservice scheduled backup cycle",
+        )
+        self.scheduled_cycle_task = task
+        task.add_done_callback(self._async_scheduled_cycle_done)
+
+    def _async_scheduled_cycle_done(self, task: asyncio.Task[Any]) -> None:
+        """Clear the stored scheduled cycle task when it completes."""
+        if self.scheduled_cycle_task is task:
+            self.scheduled_cycle_task = None
+
+    def _schedule_daily_time(self) -> time | None:
+        """Parse the configured daily time value."""
+        return dt_util.parse_time(
+            str(self.entry.options.get(CONF_DAILY_TIME, DEFAULT_DAILY_TIME))
+        )
+
+    def _schedule_interval(self) -> timedelta:
+        """Return the configured schedule interval."""
+        interval = max(1, int(self.entry.options.get(CONF_INTERVAL, DEFAULT_INTERVAL)))
+        unit = str(self.entry.options.get(CONF_INTERVAL_UNIT, DEFAULT_INTERVAL_UNIT))
+        if unit == "minutes":
+            return timedelta(minutes=interval)
+        if unit == "days":
+            return timedelta(days=interval)
+        return timedelta(hours=interval)
+
+    def _uses_daily_schedule(self, daily_time: time | None) -> bool:
+        """Return whether the current config should use a daily time trigger."""
+        return (
+            daily_time is not None
+            and int(self.entry.options.get(CONF_INTERVAL, DEFAULT_INTERVAL)) == 1
+            and str(
+                self.entry.options.get(
+                    CONF_INTERVAL_UNIT,
+                    DEFAULT_INTERVAL_UNIT,
+                )
+            )
+            == INTERVAL_UNIT_DAYS
+        )

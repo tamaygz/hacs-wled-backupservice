@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [scheduler, automation, lifecycle]
 ---
 
 # 12 — Scheduler
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -98,17 +98,43 @@ custom_components/wled_backupservice/scheduler.py   # optional helper module
 
 ## Acceptance criteria
 
-- [ ] Uses HA scheduling helpers; no infinite loop.
-- [ ] Interval and daily-at-time both supported.
-- [ ] No overlapping cycles.
-- [ ] Prune runs after successful backups.
-- [ ] Clean teardown on unload/reload.
-- [ ] >95% coverage for scheduler code.
+- [x] Uses HA scheduling helpers; no infinite loop.
+- [x] Interval and daily-at-time both supported.
+- [x] No overlapping cycles.
+- [x] Prune runs after successful backups.
+- [x] Clean teardown on unload/reload.
+- [x] >95% coverage for scheduler code.
 
 ## Definition of done
 
 Scheduled backups run per the options configuration, never overlap, prune afterward, and
 tear down cleanly on unload/reload/restart.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The scheduler landed directly inside `manager.py`: `async_setup()` now registers either
+  `async_track_time_interval` or `async_track_time_change`, `async_shutdown()` tears the
+  listener down, and scheduled runs are launched with `entry.async_create_background_task`
+  so Home Assistant cancels them automatically during unload.
+- Because the options flow always carries both `interval` and `daily_time`, the runtime
+  treats `daily_time` as the explicit daily trigger only when the schedule is exactly
+  `1 day`; multi-day schedules continue to use interval timing so “every 2 days” remains
+  expressible.
+- Overlap protection is implemented as a tracked background task reference: if a previous
+  scheduled cycle is still running when the next tick fires, the tick is skipped rather
+  than queued.
+- Scheduled cycles reuse the existing backup and retention paths, passing the current
+  `include_presets` / `include_state` options into `async_backup_all()` and pruning only
+  after the backup pass completes.
+- Full-suite validation after plan 12 is green (`114 passed`, `ruff check .`, and
+  `mypy custom_components tests`), with `manager.py` at 95% coverage. The existing
+  `pytest-asyncio` custom `event_loop` deprecation warning remains an unchanged baseline.
 
 ## References
 

@@ -55,7 +55,7 @@ Home Assistant ──▶ WLED Backup Service
 | 09 | [Retention policy](09_retention.md)                                                | ✅ Complete   | 07,08      | `retention.py` now applies count/age pruning safely with dry-run and fail-soft delete reporting |
 | 10 | [Services / actions registration](10_services_actions.md)                          | ✅ Complete   | 08,09      | All seven actions are registered, target-safe, response-capable, and validated with `services.py` at 97% coverage |
 | 11 | [Restore engine](11_restore_engine.md)                                             | ✅ Complete   | 06,07,08   | Safety-backed cfg + presets restore is live, target-safe, and validated with `manager.py` at 96% coverage |
-| 12 | [Scheduler](12_scheduler.md)                                                       | ⬜ Not started | 08,09      | `async_track_time_interval` / daily time, no-overlap guard |
+| 12 | [Scheduler](12_scheduler.md)                                                       | ✅ Complete   | 08,09      | HA-native interval/daily scheduling is live with tracked background tasks, skip-on-overlap, and post-cycle prune |
 | 13 | [Diagnostics](13_diagnostics.md)                                                   | ⬜ Not started | 03,08      | `diagnostics.py`, redaction |
 | 14 | [Translations & UI polish](14_translations_ui.md)                                  | ⬜ Not started | 04,10,11   | `translations/en.json`, `strings.json`, `data_description` |
 | 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ⬜ Not started | all above  | Cross-cutting fixtures, coverage >95%, gap-filling |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, and 11 are complete. The next eligible plan is 12.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, and 12 are complete. The next eligible plan is 13.
 
 ## Dependency overview
 
@@ -128,8 +128,12 @@ coverage gate, and fills any gaps.
 - Plan 11 implements restore directly in `manager.py` with safety backup by default,
   per-device serialization, cross-device MAC refusal, firmware-drift warnings, and honest
   `unsupported` reporting when preset upload is unavailable or unverified.
-- Full-suite validation after plan 11 is green (`108 passed`, `ruff check .`, and
-  `mypy custom_components tests`), with `manager.py` now at 96% coverage.
+- Plan 12 keeps scheduling inside the manager and uses HA-native listeners plus
+  `entry.async_create_background_task` for tracked cycles. Because the options flow always
+  stores both `interval` and `daily_time`, runtime treats `daily_time` as the daily trigger
+  only for `1 day`; larger day-based schedules stay interval-driven.
+- Full-suite validation after plan 12 is green (`114 passed`, `ruff check .`, and
+  `mypy custom_components tests`), with `manager.py` at 95% coverage.
 
 ## Procedural instructions for future agents
 

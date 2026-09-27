@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -31,6 +32,21 @@ class FakeEntry:
     """Minimal config entry stand-in for manager tests."""
 
     options: dict[str, object]
+    entry_id: str = "test-entry"
+    unload_callbacks: list[Any] = field(default_factory=list)
+
+    def async_on_unload(self, callback: Any) -> None:
+        self.unload_callbacks.append(callback)
+
+    def async_create_background_task(
+        self,
+        hass: Any,
+        target: Any,
+        name: str,
+        eager_start: bool = False,
+    ) -> asyncio.Task[Any]:
+        del eager_start
+        return hass.async_create_background_task(target, name)
 
 
 class RecordingStorage:
@@ -157,9 +173,18 @@ def _make_runtime_manager(
     options: dict[str, object] | None = None,
 ) -> WLEDBackupManager:
     """Create a manager with a fake hass object that supports lazy wiring."""
+    def _async_create_background_task(
+        target: Any,
+        name: str,
+        eager_start: bool = False,
+    ) -> asyncio.Task[Any]:
+        del eager_start
+        return asyncio.create_task(target, name=name)
+
     hass = SimpleNamespace(
         data={},
         config=SimpleNamespace(path=lambda *_parts: "config"),
+        async_create_background_task=_async_create_background_task,
     )
     return WLEDBackupManager(hass=hass, entry=FakeEntry(options=options or {}))
 
@@ -394,16 +419,208 @@ async def test_async_discover_devices_delegates_to_discovery_module() -> None:
 @pytest.mark.asyncio
 async def test_async_setup_and_shutdown_toggle_runtime_state() -> None:
     """Lifecycle hooks should update manager runtime state."""
-    manager = _make_manager()
+    manager = _make_manager({"schedule_enabled": False})
 
     await manager.async_setup()
     assert manager.is_setup is True
     assert manager.is_shutdown is False
 
-    manager.scheduler_unsub = object()
+    manager.scheduler_unsub = lambda: None
     await manager.async_shutdown()
     assert manager.is_shutdown is True
     assert manager.scheduler_unsub is None
+
+
+@pytest.mark.asyncio
+async def test_async_setup_registers_interval_scheduler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manager = _make_runtime_manager(
+        {
+            "schedule_enabled": True,
+            "interval": 2,
+            "interval_unit": "hours",
+            "daily_time": "06:30:00",
+        }
+    )
+    captured: dict[str, Any] = {}
+    unsub_called = False
+
+    def _unsub() -> None:
+        nonlocal unsub_called
+        unsub_called = True
+
+    def _track_interval(hass: Any, action: Any, interval: Any) -> Any:
+        captured["hass"] = hass
+        captured["action"] = action
+        captured["interval"] = interval
+        return _unsub
+
+    monkeypatch.setattr(
+        manager_module.event,
+        "async_track_time_interval",
+        _track_interval,
+    )
+    monkeypatch.setattr(
+        manager_module.event,
+        "async_track_time_change",
+        lambda *args: pytest.fail("daily schedule should not be used"),
+    )
+
+    await manager.async_setup()
+
+    assert captured["hass"] is manager.hass
+    assert captured["action"] == manager._async_handle_scheduled_tick
+    assert captured["interval"].total_seconds() == 7200
+    assert manager.scheduler_unsub is _unsub
+
+    manager.entry.unload_callbacks[0]()
+
+    assert unsub_called is True
+    assert manager.scheduler_unsub is None
+
+
+@pytest.mark.asyncio
+async def test_async_setup_registers_daily_scheduler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manager = _make_runtime_manager(
+        {
+            "schedule_enabled": True,
+            "interval": 1,
+            "interval_unit": "days",
+            "daily_time": "06:30:15",
+        }
+    )
+    captured: dict[str, Any] = {}
+
+    monkeypatch.setattr(
+        manager_module.event,
+        "async_track_time_interval",
+        lambda *args: pytest.fail("interval schedule should not be used"),
+    )
+
+    def _track_daily(
+        hass: Any,
+        action: Any,
+        *,
+        hour: int,
+        minute: int,
+        second: int,
+    ) -> Any:
+        captured["hass"] = hass
+        captured["action"] = action
+        captured["time"] = (hour, minute, second)
+        return lambda: None
+
+    monkeypatch.setattr(manager_module.event, "async_track_time_change", _track_daily)
+
+    await manager.async_setup()
+
+    assert captured["hass"] is manager.hass
+    assert captured["action"] == manager._async_handle_scheduled_tick
+    assert captured["time"] == (6, 30, 15)
+
+
+@pytest.mark.asyncio
+async def test_async_setup_skips_scheduler_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manager = _make_runtime_manager({"schedule_enabled": False})
+    interval_mock = AsyncMock()
+    daily_mock = AsyncMock()
+    monkeypatch.setattr(
+        manager_module.event,
+        "async_track_time_interval",
+        interval_mock,
+    )
+    monkeypatch.setattr(manager_module.event, "async_track_time_change", daily_mock)
+
+    await manager.async_setup()
+
+    interval_mock.assert_not_called()
+    daily_mock.assert_not_called()
+    assert manager.scheduler_unsub is None
+
+
+@pytest.mark.asyncio
+async def test_async_run_scheduled_cycle_prunes_after_backups() -> None:
+    manager = _make_runtime_manager()
+    events: list[str] = []
+    backup_result = [
+        manager_module.BackupResult(
+            device_id="device-one",
+            device_name="Kitchen",
+            success=True,
+            backup_id="device-one/2026/09/27/030000",
+            path=Path("C:/backups/device-one/2026/09/27/030000"),
+            files=("cfg.json",),
+            created_at=datetime(2026, 9, 27, 3, 0, 0, tzinfo=UTC),
+            error=None,
+        )
+    ]
+
+    async def _backup_all(**kwargs: Any) -> list[Any]:
+        events.append(f"backup:{kwargs['include_presets']}:{kwargs['include_state']}")
+        return backup_result
+
+    async def _prune() -> object:
+        events.append("prune")
+        return object()
+
+    manager.async_backup_all = _backup_all  # type: ignore[method-assign]
+    manager.async_prune = _prune  # type: ignore[method-assign]
+
+    await manager.async_run_scheduled_cycle()
+
+    assert events == ["backup:True:False", "prune"]
+
+
+@pytest.mark.asyncio
+async def test_scheduled_tick_skips_when_cycle_is_already_running() -> None:
+    manager = _make_runtime_manager()
+    running_task = asyncio.create_task(asyncio.sleep(60))
+    manager.scheduled_cycle_task = running_task
+
+    try:
+        manager._async_handle_scheduled_tick(datetime.now(UTC))
+        assert manager.scheduled_cycle_task is running_task
+    finally:
+        running_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await running_task
+
+
+@pytest.mark.asyncio
+async def test_scheduled_tick_creates_background_task_once_previous_cycle_finishes(
+) -> None:
+    manager = _make_runtime_manager({"schedule_enabled": False})
+    gate = asyncio.Event()
+    started = asyncio.Event()
+
+    async def _run_cycle() -> None:
+        started.set()
+        await gate.wait()
+
+    manager.async_run_scheduled_cycle = _run_cycle  # type: ignore[method-assign]
+
+    manager._async_handle_scheduled_tick(datetime.now(UTC))
+    await started.wait()
+    first_task = manager.scheduled_cycle_task
+    assert first_task is not None
+
+    manager._async_handle_scheduled_tick(datetime.now(UTC))
+    assert manager.scheduled_cycle_task is first_task
+
+    gate.set()
+    await first_task
+    await asyncio.sleep(0)
+
+    manager._async_handle_scheduled_tick(datetime.now(UTC))
+    second_task = manager.scheduled_cycle_task
+    assert second_task is not None
+    assert second_task is not first_task
+    await second_task
 def test_bool_option_json_bytes_and_lock_helpers() -> None:
     """Small manager helpers should resolve options deterministically."""
     manager = _make_manager({"include_presets": False})

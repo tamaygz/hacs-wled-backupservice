@@ -36,8 +36,13 @@ class FakeServices:
 class FakeEntry:
     """Minimal config-entry stand-in for lifecycle tests."""
 
-    def __init__(self, entry_id: str = "test-entry") -> None:
+    def __init__(
+        self,
+        entry_id: str = "test-entry",
+        options: dict[str, object] | None = None,
+    ) -> None:
         self.entry_id = entry_id
+        self.options = options or {"schedule_enabled": False}
         self.runtime_data = None
         self.update_listeners: list = []
         self.unload_callbacks: list = []
