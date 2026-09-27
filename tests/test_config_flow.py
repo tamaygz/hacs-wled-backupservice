@@ -370,7 +370,7 @@ def test_schedule_schema_defaults_daily_time_when_missing() -> None:
 
 @pytest.mark.asyncio
 async def test_storage_step_shows_backup_root_note() -> None:
-    """Selecting the backup root should surface a note placeholder for the user."""
+    """The storage step should not need runtime placeholders for static help text."""
     flow = _make_options_flow({**_default_options(), CONF_STORAGE_ROOT: "backup"})
     flow._options = {**_default_options(), CONF_STORAGE_ROOT: "backup"}
 
@@ -378,9 +378,7 @@ async def test_storage_step_shows_backup_root_note() -> None:
 
     assert result["type"] is data_entry_flow.FlowResultType.FORM
     assert result["step_id"] == "storage"
-    assert result["description_placeholders"] == {
-        "backup_root_note": "/backup is Home Assistant's backup-storage mount."
-    }
+    assert result.get("description_placeholders") is None
 
 
 @pytest.mark.asyncio

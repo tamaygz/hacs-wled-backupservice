@@ -186,32 +186,36 @@ async def test_async_setup_registers_services_idempotently(
 async def test_services_registered_without_loaded_entry_raise_clear_error(
     hass: HomeAssistant,
 ) -> None:
-
-
-    @pytest.mark.asyncio
-    async def test_services_with_unloaded_runtime_data_raise_clear_error(
-        hass: HomeAssistant,
-    ) -> None:
-        await _register_services(hass)
-        entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-        entry.add_to_hass(hass)
-
-        with pytest.raises(HomeAssistantError, match="not ready yet"):
-            await hass.services.async_call(
-                DOMAIN,
-                services_module.SERVICE_DISCOVER,
-                blocking=True,
-                return_response=True,
-            )
     await _register_services(hass)
 
-    with pytest.raises(HomeAssistantError, match="No WLED Backup Service config entry"):
+    with pytest.raises(HomeAssistantError) as exc_info:
         await hass.services.async_call(
             DOMAIN,
             services_module.SERVICE_BACKUP_ALL,
             blocking=True,
             return_response=True,
         )
+    assert exc_info.value.translation_domain == DOMAIN
+    assert exc_info.value.translation_key == "config_entry_not_loaded"
+
+
+@pytest.mark.asyncio
+async def test_services_with_unloaded_runtime_data_raise_clear_error(
+    hass: HomeAssistant,
+) -> None:
+    await _register_services(hass)
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+
+    with pytest.raises(HomeAssistantError) as exc_info:
+        await hass.services.async_call(
+            DOMAIN,
+            services_module.SERVICE_DISCOVER,
+            blocking=True,
+            return_response=True,
+        )
+    assert exc_info.value.translation_domain == DOMAIN
+    assert exc_info.value.translation_key == "config_entry_not_ready"
 
 
 @pytest.mark.asyncio
@@ -372,7 +376,7 @@ async def test_restore_action_requires_one_device_and_is_not_ready(
         "async_resolve_target_devices",
         resolve_none,
     )
-    with pytest.raises(ServiceValidationError, match="at least one WLED device target"):
+    with pytest.raises(ServiceValidationError) as exc_info:
         await hass.services.async_call(
             DOMAIN,
             services_module.SERVICE_RESTORE,
@@ -380,6 +384,8 @@ async def test_restore_action_requires_one_device_and_is_not_ready(
             blocking=True,
             return_response=True,
         )
+    assert exc_info.value.translation_domain == DOMAIN
+    assert exc_info.value.translation_key == "target_required"
 
     async def resolve_many(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
         return [device, _make_device(device_id="device-two", host="10.0.0.11")]
@@ -389,7 +395,7 @@ async def test_restore_action_requires_one_device_and_is_not_ready(
         "async_resolve_target_devices",
         resolve_many,
     )
-    with pytest.raises(ServiceValidationError, match="exactly one WLED target device"):
+    with pytest.raises(ServiceValidationError) as exc_info:
         await hass.services.async_call(
             DOMAIN,
             services_module.SERVICE_RESTORE,
@@ -400,9 +406,41 @@ async def test_restore_action_requires_one_device_and_is_not_ready(
             blocking=True,
             return_response=True,
         )
+    assert exc_info.value.translation_domain == DOMAIN
+    assert exc_info.value.translation_key == "restore_requires_single_device"
 
     async def resolve_one(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
         return [device]
+
+
+@pytest.mark.asyncio
+async def test_resolve_target_device_errors_use_translation_keys(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    device = _make_device()
+
+    monkeypatch.setattr(
+        services_module,
+        "async_resolve_target_devices",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            WLEDValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_device_target",
+                translation_placeholders={"target": device.ha_device_id or "unknown"},
+            )
+        ),
+    )
+
+    with pytest.raises(WLEDValidationError) as exc_info:
+        await services_module._resolve_devices_or_raise(
+            hass,
+            type("Call", (), {"data": {}, "target": {}})(),
+            required=False,
+        )
+
+    assert exc_info.value.translation_domain == DOMAIN
+    assert exc_info.value.translation_key == "invalid_device_target"
 async def test_restore_action_returns_response_when_manager_supports_it(
     hass: HomeAssistant,
     monkeypatch: pytest.MonkeyPatch,

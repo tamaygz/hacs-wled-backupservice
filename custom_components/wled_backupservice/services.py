@@ -106,7 +106,8 @@ async def async_register_services(hass: HomeAssistant) -> None:
         devices = await _resolve_devices_or_raise(hass, call, required=True)
         if len(devices) != 1:
             raise ServiceValidationError(
-                "restore requires exactly one WLED target device"
+                translation_domain=DOMAIN,
+                translation_key="restore_requires_single_device",
             )
 
         try:
@@ -121,7 +122,8 @@ async def async_register_services(hass: HomeAssistant) -> None:
             )
         except NotImplementedError as err:
             raise HomeAssistantError(
-                "Restore is not available until the restore engine is implemented"
+                translation_domain=DOMAIN,
+                translation_key="restore_not_available",
             ) from err
         if isinstance(response, RestoreResult):
             return _serialize_restore_result(response)
@@ -240,13 +242,15 @@ def _get_loaded_manager(hass: HomeAssistant) -> Any:
     entries: list[ConfigEntry] = list(hass.config_entries.async_entries(DOMAIN))
     if not entries:
         raise HomeAssistantError(
-            "No WLED Backup Service config entry is currently loaded"
+            translation_domain=DOMAIN,
+            translation_key="config_entry_not_loaded",
         )
 
     manager = getattr(entries[0], "runtime_data", None)
     if manager is None:
         raise HomeAssistantError(
-            "WLED Backup Service is not ready yet; load the config entry first"
+            translation_domain=DOMAIN,
+            translation_key="config_entry_not_ready",
         )
     return manager
 
@@ -261,7 +265,8 @@ async def _resolve_devices_or_raise(
     devices = await async_resolve_target_devices(hass, call)
     if required and not devices:
         raise ServiceValidationError(
-            "This action requires at least one WLED device target"
+            translation_domain=DOMAIN,
+            translation_key="target_required",
         )
     return devices
 

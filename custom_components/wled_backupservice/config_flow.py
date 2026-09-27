@@ -60,7 +60,6 @@ from .validators import normalize_backup_subdir
 _SUPPORTS_OPTIONS_FLOW_CONFIG_ENTRY = hasattr(
     config_entries.OptionsFlow, "config_entry"
 )
-_BACKUP_ROOT_NOTE = "/backup is Home Assistant's backup-storage mount."
 
 
 def _default_options() -> dict[str, Any]:
@@ -116,6 +115,7 @@ def _schedule_schema(options: Mapping[str, Any]) -> vol.Schema:
             ): SelectSelector(
                 SelectSelectorConfig(
                     options=list(INTERVAL_UNITS),
+                    translation_key=CONF_INTERVAL_UNIT,
                     mode=SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -137,6 +137,7 @@ def _storage_schema(options: Mapping[str, Any]) -> vol.Schema:
             ): SelectSelector(
                 SelectSelectorConfig(
                     options=list(STORAGE_ROOTS),
+                    translation_key=CONF_STORAGE_ROOT,
                     mode=SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -322,16 +323,10 @@ class _WLEDBackupOptionsFlowMixin:
                 )
                 return await self.async_step_contents()
 
-        current_root = self._options[CONF_STORAGE_ROOT]
-        description_placeholders = None
-        if current_root == "backup":
-            description_placeholders = {"backup_root_note": _BACKUP_ROOT_NOTE}
-
         return self.async_show_form(
             step_id="storage",
             data_schema=_storage_schema(self._options),
             errors=errors,
-            description_placeholders=description_placeholders,
         )
 
     async def async_step_contents(

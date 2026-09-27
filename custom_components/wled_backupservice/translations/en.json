@@ -1,0 +1,230 @@
+{
+  "title": "WLED Backup Service",
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Already configured. Only a single configuration is possible."
+    },
+    "step": {
+      "user": {
+        "title": "Set up WLED Backup Service",
+        "description": "Manage scheduled backups, restore operations, and retention for WLED devices that are already configured in Home Assistant."
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "schedule": {
+        "title": "Schedule",
+        "description": "Configure when automatic backups run.",
+        "data": {
+          "schedule_enabled": "Enable automatic backups",
+          "interval": "Interval",
+          "interval_unit": "Interval unit",
+          "daily_time": "Daily run time"
+        },
+        "data_description": {
+          "schedule_enabled": "Turn scheduled backups on or off without removing the integration.",
+          "interval": "How often the scheduled backup cycle should run.",
+          "interval_unit": "Choose whether the interval is measured in minutes, hours, or days.",
+          "daily_time": "Used when the schedule is exactly every 1 day. Multi-day schedules continue to use interval timing."
+        }
+      },
+      "storage": {
+        "title": "Storage",
+        "description": "Choose where validated backup directories are stored. `/backup` is Home Assistant's backup-storage mount.",
+        "data": {
+          "storage_root": "Storage root",
+          "subdir": "Backup subdirectory"
+        },
+        "data_description": {
+          "storage_root": "Home Assistant storage root to use.",
+          "subdir": "Relative folder path under the selected storage root. Nested folders are allowed, but absolute paths and traversal are blocked."
+        }
+      },
+      "contents": {
+        "title": "Contents",
+        "description": "Choose which WLED artifacts each backup should include.",
+        "data": {
+          "include_presets": "Include presets",
+          "include_state": "Include current state",
+          "create_archive": "Create archive"
+        },
+        "data_description": {
+          "include_presets": "Include `presets.json` in each backup when available.",
+          "include_state": "Include the current on/off, brightness, and segment state snapshot.",
+          "create_archive": "Reserved for future archive export support. Backups are currently stored as validated directories."
+        }
+      },
+      "retention": {
+        "title": "Retention",
+        "description": "Control how many backups are kept per device and how old they may become before pruning.",
+        "data": {
+          "retention_count": "Keep latest backups",
+          "retention_days": "Maximum backup age (days)"
+        },
+        "data_description": {
+          "retention_count": "Keep this many most recent backups per device. Set to 0 to disable count-based pruning.",
+          "retention_days": "Delete backups older than this number of days after the count policy is applied. Set to 0 to disable age-based pruning."
+        }
+      },
+      "behavior": {
+        "title": "Restore behavior",
+        "description": "Configure safety checks for restore operations. Restoring can overwrite device settings, change connectivity, and optionally reboot the device.",
+        "data": {
+          "backup_before_restore": "Create a safety backup before restore",
+          "verify_after_restore": "Verify after restore",
+          "reboot_after_restore": "Reboot after restore"
+        },
+        "data_description": {
+          "backup_before_restore": "Create a fresh rollback point before any restore writes are applied.",
+          "verify_after_restore": "Re-read device data after restore and report mismatches as warnings or failures.",
+          "reboot_after_restore": "Allow restore to reboot the device after applying configuration changes."
+        }
+      }
+    },
+    "error": {
+      "invalid_interval": "Enter an interval greater than zero.",
+      "invalid_subdir": "Enter a safe relative backup path without absolute segments or traversal.",
+      "invalid_retention_count": "Enter a retention count of 0 or greater.",
+      "invalid_retention_days": "Enter a retention age in days of 0 or greater."
+    }
+  },
+  "selector": {
+    "interval_unit": {
+      "options": {
+        "minutes": "Minutes",
+        "hours": "Hours",
+        "days": "Days"
+      }
+    },
+    "storage_root": {
+      "options": {
+        "share": "Shared folder (/share)",
+        "media": "Media folder (/media)",
+        "backup": "Backup storage mount (/backup)",
+        "config": "Config folder (/config)"
+      }
+    }
+  },
+  "services": {
+    "backup": {
+      "name": "Backup selected WLED devices",
+      "description": "Create a validated backup for the selected WLED device or devices.",
+      "fields": {
+        "include_presets": {
+          "name": "Include presets",
+          "description": "Include `presets.json` in the backup."
+        },
+        "include_state": {
+          "name": "Include current state",
+          "description": "Include the current state snapshot in the backup."
+        },
+        "label": {
+          "name": "Label",
+          "description": "Reserved for future labeling support. It currently does not change the stored backup."
+        }
+      }
+    },
+    "backup_all": {
+      "name": "Backup all discovered WLED devices",
+      "description": "Create validated backups for every discovered WLED device.",
+      "fields": {
+        "include_presets": {
+          "name": "Include presets",
+          "description": "Include `presets.json` in every backup."
+        },
+        "include_state": {
+          "name": "Include current state",
+          "description": "Include the current state snapshot in every backup."
+        }
+      }
+    },
+    "restore": {
+      "name": "Restore a WLED backup",
+      "description": "Destructive: overwrite selected backup data onto the targeted WLED device. This can change connectivity settings and may reboot the device.",
+      "fields": {
+        "backup_id": {
+          "name": "Backup ID",
+          "description": "Opaque backup identifier returned by `list_backups` or a previous backup response."
+        },
+        "backup_before_restore": {
+          "name": "Create safety backup first",
+          "description": "Create a fresh rollback backup before restore begins."
+        },
+        "restore_config": {
+          "name": "Restore configuration",
+          "description": "Apply the stored `cfg.json` configuration to the device."
+        },
+        "restore_presets": {
+          "name": "Restore presets",
+          "description": "Apply the stored `presets.json` file when preset upload is supported and verified."
+        },
+        "verify_after_restore": {
+          "name": "Verify after restore",
+          "description": "Read the device again after restore and report mismatches."
+        },
+        "reboot_after_restore": {
+          "name": "Reboot after restore",
+          "description": "Allow restore to reboot the device after applying configuration changes."
+        }
+      }
+    },
+    "list_backups": {
+      "name": "List backups",
+      "description": "Return metadata for stored backups, optionally filtered by WLED target device.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Maximum number of backups to return after sorting newest first."
+        }
+      }
+    },
+    "delete_backup": {
+      "name": "Delete a backup",
+      "description": "Delete a stored backup by its backup ID.",
+      "fields": {
+        "backup_id": {
+          "name": "Backup ID",
+          "description": "Opaque backup identifier returned by `list_backups` or a previous backup response."
+        }
+      }
+    },
+    "prune": {
+      "name": "Prune backups",
+      "description": "Apply the configured retention policy to all backups or to the selected WLED devices.",
+      "fields": {
+        "dry_run": {
+          "name": "Dry run",
+          "description": "Report which backups would be deleted without deleting them."
+        }
+      }
+    },
+    "discover": {
+      "name": "Discover WLED devices",
+      "description": "Return the WLED devices currently available through Home Assistant's native WLED integration."
+    }
+  },
+  "exceptions": {
+    "config_entry_not_loaded": {
+      "message": "No WLED Backup Service config entry is currently loaded."
+    },
+    "config_entry_not_ready": {
+      "message": "WLED Backup Service is not ready yet. Load the config entry first."
+    },
+    "target_required": {
+      "message": "This action requires at least one WLED device target."
+    },
+    "restore_requires_single_device": {
+      "message": "Restore requires exactly one WLED target device."
+    },
+    "restore_not_available": {
+      "message": "Restore is not available until the restore engine is implemented."
+    },
+    "invalid_device_target": {
+      "message": "Device target '{target}' is not a Home Assistant WLED device."
+    },
+    "unresolved_device_target": {
+      "message": "WLED device target '{target}' could not be resolved for backup."
+    }
+  }
+}

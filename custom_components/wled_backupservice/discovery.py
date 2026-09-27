@@ -96,15 +96,17 @@ async def async_resolve_target_devices(
             hass, registry_device
         ):
             raise WLEDValidationError(
-                f"Device target '{target_device_id}' is not a Home Assistant "
-                "WLED device"
+                translation_domain="wled_backupservice",
+                translation_key="invalid_device_target",
+                translation_placeholders={"target": target_device_id},
             )
 
         resolved_device = devices_by_ha_id.get(target_device_id)
         if resolved_device is None:
             raise WLEDValidationError(
-                f"WLED device target '{target_device_id}' could not be "
-                "resolved for backup"
+                translation_domain="wled_backupservice",
+                translation_key="unresolved_device_target",
+                translation_placeholders={"target": target_device_id},
             )
 
         resolved.append(resolved_device)

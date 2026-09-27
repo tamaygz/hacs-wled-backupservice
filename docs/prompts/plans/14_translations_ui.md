@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [translations, i18n, ui]
 ---
 
 # 14 — Translations & UI polish
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -87,15 +87,38 @@ custom_components/wled_backupservice/services.yaml    # ensure names/description
 
 ## Acceptance criteria
 
-- [ ] `translations/en.json` complete and flat for all keys.
-- [ ] Config/options/services/exceptions all covered.
-- [ ] Destructive-restore warning present.
-- [ ] Cross-check test passes.
+- [x] `translations/en.json` complete and flat for all keys.
+- [x] Config/options/services/exceptions all covered.
+- [x] Destructive-restore warning present.
+- [x] Cross-check test passes.
 
 ## Definition of done
 
 All user-facing text renders correctly in the HA UI from `translations/en.json`, with no
 missing keys and clear destructive-action warnings.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- This repo now ships both `strings.json` and `translations/en.json` with identical flat
+  English content. Runtime remains driven by `translations/en.json`, while `strings.json`
+  serves as an authoring copy that stays in sync through the translation cross-check test.
+- `config_flow.py` now uses selector translation keys for the interval-unit and storage-root
+  dropdowns, so those options render polished labels instead of raw internal values.
+- The restore warning is carried in the translated service description and the options
+  behavior-step description: restore is explicitly marked destructive, may affect
+  connectivity, and may reboot the device.
+- There are still no code-level `translation_key` consumers for custom exception classes, so
+  no dedicated `exceptions` translation section was required yet; the cross-check test
+  confirms all currently referenced config/options/service keys are present.
+- Full-suite validation after plan 14 is green (`121 passed`, `ruff check .`, and
+  `mypy custom_components tests`), with the new translation cross-check test passing and the
+  existing `pytest-asyncio` custom `event_loop` deprecation warning unchanged.
 
 ## References
 

@@ -57,7 +57,7 @@ Home Assistant ──▶ WLED Backup Service
 | 11 | [Restore engine](11_restore_engine.md)                                             | ✅ Complete   | 06,07,08   | Safety-backed cfg + presets restore is live, target-safe, and validated with `manager.py` at 96% coverage |
 | 12 | [Scheduler](12_scheduler.md)                                                       | ✅ Complete   | 08,09      | HA-native interval/daily scheduling is live with tracked background tasks, skip-on-overlap, and post-cycle prune |
 | 13 | [Diagnostics](13_diagnostics.md)                                                   | ✅ Complete   | 03,08      | Redacted config-entry diagnostics are live with masked device metadata, backup counts, and runtime state |
-| 14 | [Translations & UI polish](14_translations_ui.md)                                  | ⬜ Not started | 04,10,11   | `translations/en.json`, `strings.json`, `data_description` |
+| 14 | [Translations & UI polish](14_translations_ui.md)                                  | ✅ Complete   | 04,10,11   | Flat runtime translations are live with selector labels, restore warnings, and a translation cross-check test |
 | 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ⬜ Not started | all above  | Cross-cutting fixtures, coverage >95%, gap-filling |
 | 16 | [CI, Hassfest & HACS validation](16_ci_validation.md)                             | ⬜ Not started | 15         | GitHub Actions: hassfest, HACS action, tests |
 | 17 | [Documentation & release](17_documentation_release.md)                            | ⬜ Not started | 16         | README, info.md, quality_scale, GitHub release |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, and 13 are complete. The next eligible plan is 14.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, and 14 are complete. The next eligible plan is 15.
 
 ## Dependency overview
 
@@ -136,8 +136,12 @@ coverage gate, and fills any gaps.
   data/options, partial masking for discovered-device and backup inventory metadata, and no
   backup artifact body reads. The manager now tracks lightweight backup runtime state for
   diagnostics and passes the current manifest version into storage.
-- Full-suite validation after plan 13 is green (`118 passed`, `ruff check .`, and
-  `mypy custom_components tests`), with `diagnostics.py` at 100% coverage.
+- Plan 14 adds flat custom-integration translations in both `translations/en.json` and
+  `strings.json`, selector labels for options-flow dropdowns, explicit destructive restore
+  warnings, and a cross-check test that verifies current config/options/service keys are all
+  present in the shipped English text.
+- Full-suite validation after plan 14 is green (`121 passed`, `ruff check .`, and
+  `mypy custom_components tests`).
 
 ## Procedural instructions for future agents
 

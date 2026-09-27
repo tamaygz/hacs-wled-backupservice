@@ -20,6 +20,7 @@ run the test suite with the coverage gate, and lint/type-check — on every push
 ## Scope
 
 In scope: `.github/workflows/hassfest.yml`, `hacs.yml`, `tests.yml` (lint + mypy + pytest).
+Dont add auto-trigger to this workflow, keep them invocable either by human or other workflow.
 Out of scope: publishing releases (17).
 
 ## Prerequisites / dependencies
