@@ -1,0 +1,26 @@
+level: silver
+
+done:
+  - action-setup
+  - config-flow
+  - config-flow-test-coverage
+  - diagnostics
+  - dependency-transparency
+  - discovery
+  - docs-high-level-description
+  - docs-installation-instructions
+  - docs-actions
+  - runtime-data
+  - test-before-setup
+  - tests
+
+todo:
+  - real-hardware-preset-restore-verification
+  - brands-pr-merged
+  - published-github-release
+
+notes:
+  action-setup: Actions are registered from async_setup and remain available even when no config entry is loaded.
+  diagnostics: diagnostics.py returns redacted metadata only and avoids backup artifact bodies.
+  tests: The repository enforces fail_under = 95 and currently passes at 96.26% coverage.
+  release: HACS default-listing and release publication remain external release-process steps.
