@@ -229,6 +229,9 @@ async def test_async_backup_device_writes_selected_artifacts() -> None:
     result = await manager.async_backup_device(_make_device())
 
     assert result.success is True
+    assert manager.last_backup_status == "success"
+    assert manager.last_backup_success is not None
+    assert manager.last_error is None
     assert result.backup_id == "kitchen/2026/09/27/030000"
     assert set(result.files) == {"cfg.json", "info.json", "presets.json"}
     assert len(storage.calls) == 1
@@ -305,6 +308,9 @@ async def test_async_backup_all_is_fail_soft() -> None:
 
     assert [result.success for result in results] == [True, False]
     assert results[1].error == "offline"
+    assert manager.discovered_device_count == 2
+    assert manager.last_backup_status == "partial_failure"
+    assert manager.last_error == "offline"
     assert len(storage.calls) == 1
 
 
@@ -355,6 +361,8 @@ async def test_async_backup_device_rejects_non_wled_brand() -> None:
     result = await manager.async_backup_device(_make_device())
 
     assert result.success is False
+    assert manager.last_backup_status == "failed"
+    assert manager.last_error == "Expected WLED device at 10.0.0.10, got 'Other'"
     assert result.error == "Expected WLED device at 10.0.0.10, got 'Other'"
 
 
@@ -710,6 +718,7 @@ def test_ensure_storage_uses_entry_options(monkeypatch: pytest.MonkeyPatch) -> N
     assert captured["hass"] is manager.hass
     assert captured["storage_root"] == "backup"
     assert captured["subdir"] == "custom_backups"
+    assert captured["integration_version"] == "1.0.0"
 
 
 @pytest.mark.asyncio

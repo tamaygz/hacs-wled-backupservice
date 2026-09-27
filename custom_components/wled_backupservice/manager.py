@@ -6,6 +6,7 @@ import asyncio
 import json
 from dataclasses import asdict
 from datetime import datetime, time, timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
@@ -57,6 +58,19 @@ else:
     WLEDBackupConfigEntry = ConfigEntry
 
 
+def _load_integration_version() -> str:
+    """Load the integration version from manifest.json."""
+    manifest_path = Path(__file__).with_name("manifest.json")
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return "unknown"
+    return str(manifest.get("version", "unknown"))
+
+
+INTEGRATION_VERSION = _load_integration_version()
+
+
 class WLEDBackupManager:
     """Composition root for integration runtime objects."""
 
@@ -71,6 +85,11 @@ class WLEDBackupManager:
         self.scheduler_unsub: Any | None = None
         self.scheduled_cycle_task: asyncio.Task[Any] | None = None
         self.locks: dict[str, asyncio.Lock] = {}
+        self.integration_version = INTEGRATION_VERSION
+        self.last_backup_success: datetime | None = None
+        self.last_backup_status: str | None = None
+        self.last_error: str | None = None
+        self.discovered_device_count = 0
         self.is_setup = False
         self.is_shutdown = False
 
@@ -118,6 +137,7 @@ class WLEDBackupManager:
         include_presets: bool | None = None,
         include_state: bool | None = None,
         label: str | None = None,
+        record_runtime_state: bool = True,
     ) -> BackupResult:
         """Back up a single WLED device."""
         del label
@@ -194,10 +214,12 @@ class WLEDBackupManager:
                     device.name,
                     backup.backup_id,
                 )
+                if record_runtime_state:
+                    self._record_backup_results([result])
                 return result
             except WLEDBackupError as err:
                 LOGGER.warning("Backup failed for %s: %s", device.name, err)
-                return BackupResult(
+                result = BackupResult(
                     device_id=device.device_id,
                     device_name=device.name,
                     success=False,
@@ -207,6 +229,9 @@ class WLEDBackupManager:
                     created_at=None,
                     error=str(err),
                 )
+                if record_runtime_state:
+                    self._record_backup_results([result])
+                return result
 
     async def async_backup_all(
         self,
@@ -215,7 +240,13 @@ class WLEDBackupManager:
         include_state: bool | None = None,
     ) -> list[BackupResult]:
         """Back up all discovered WLED devices."""
-        devices = await self.async_discover_devices()
+        try:
+            devices = await self.async_discover_devices()
+        except Exception as err:
+            self.last_backup_status = "failed"
+            self.last_error = str(err)
+            raise
+
         LOGGER.info("Starting WLED backup cycle for %s devices", len(devices))
 
         results: list[BackupResult] = []
@@ -224,8 +255,11 @@ class WLEDBackupManager:
                 device,
                 include_presets=include_presets,
                 include_state=include_state,
+                record_runtime_state=False,
             )
             results.append(result)
+
+        self._record_backup_results(results)
         LOGGER.info("Finished WLED backup cycle for %s devices", len(devices))
         return results
 
@@ -461,7 +495,9 @@ class WLEDBackupManager:
         await self._async_ensure_discovery()
         discovery = self.discovery
         assert discovery is not None
-        return await discovery.async_discover_wled_devices(self.hass)
+        devices = await discovery.async_discover_wled_devices(self.hass)
+        self.discovered_device_count = len(devices)
+        return devices
 
     def _async_get_device_lock(self, device_id: str) -> asyncio.Lock:
         """Return the shared lock for a device, creating it lazily."""
@@ -498,6 +534,7 @@ class WLEDBackupManager:
                     DEFAULT_STORAGE_ROOT,
                 ),
                 subdir=self.entry.options.get(CONF_SUBDIR, DEFAULT_SUBDIR),
+                integration_version=self.integration_version,
             )
 
     def _ensure_retention(self) -> None:
@@ -532,6 +569,26 @@ class WLEDBackupManager:
     def _json_bytes(self, payload: dict[str, Any]) -> bytes:
         """Serialize a JSON object to stable UTF-8 bytes for backup storage."""
         return json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")
+
+    def _record_backup_results(self, results: list[BackupResult]) -> None:
+        """Update lightweight runtime state after a backup operation."""
+        if not results:
+            self.last_backup_status = "no_devices"
+            self.last_error = None
+            return
+
+        failures = [result for result in results if not result.success]
+        if not failures:
+            self.last_backup_status = "success"
+            self.last_backup_success = dt_util.utcnow()
+            self.last_error = None
+            return
+
+        if len(failures) == len(results):
+            self.last_backup_status = "failed"
+        else:
+            self.last_backup_status = "partial_failure"
+        self.last_error = failures[0].error
 
     def _async_setup_scheduler(self) -> None:
         """Register the configured scheduler callback."""

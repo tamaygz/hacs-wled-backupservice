@@ -56,7 +56,7 @@ Home Assistant ──▶ WLED Backup Service
 | 10 | [Services / actions registration](10_services_actions.md)                          | ✅ Complete   | 08,09      | All seven actions are registered, target-safe, response-capable, and validated with `services.py` at 97% coverage |
 | 11 | [Restore engine](11_restore_engine.md)                                             | ✅ Complete   | 06,07,08   | Safety-backed cfg + presets restore is live, target-safe, and validated with `manager.py` at 96% coverage |
 | 12 | [Scheduler](12_scheduler.md)                                                       | ✅ Complete   | 08,09      | HA-native interval/daily scheduling is live with tracked background tasks, skip-on-overlap, and post-cycle prune |
-| 13 | [Diagnostics](13_diagnostics.md)                                                   | ⬜ Not started | 03,08      | `diagnostics.py`, redaction |
+| 13 | [Diagnostics](13_diagnostics.md)                                                   | ✅ Complete   | 03,08      | Redacted config-entry diagnostics are live with masked device metadata, backup counts, and runtime state |
 | 14 | [Translations & UI polish](14_translations_ui.md)                                  | ⬜ Not started | 04,10,11   | `translations/en.json`, `strings.json`, `data_description` |
 | 15 | [Testing & coverage gate](15_testing_coverage.md)                                  | ⬜ Not started | all above  | Cross-cutting fixtures, coverage >95%, gap-filling |
 | 16 | [CI, Hassfest & HACS validation](16_ci_validation.md)                             | ⬜ Not started | 15         | GitHub Actions: hassfest, HACS action, tests |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, and 12 are complete. The next eligible plan is 13.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, and 13 are complete. The next eligible plan is 14.
 
 ## Dependency overview
 
@@ -132,8 +132,12 @@ coverage gate, and fills any gaps.
   `entry.async_create_background_task` for tracked cycles. Because the options flow always
   stores both `interval` and `daily_time`, runtime treats `daily_time` as the daily trigger
   only for `1 day`; larger day-based schedules stay interval-driven.
-- Full-suite validation after plan 12 is green (`114 passed`, `ruff check .`, and
-  `mypy custom_components tests`), with `manager.py` at 95% coverage.
+- Plan 13 adds top-level config-entry diagnostics with Home Assistant redaction for config
+  data/options, partial masking for discovered-device and backup inventory metadata, and no
+  backup artifact body reads. The manager now tracks lightweight backup runtime state for
+  diagnostics and passes the current manifest version into storage.
+- Full-suite validation after plan 13 is green (`118 passed`, `ruff check .`, and
+  `mypy custom_components tests`), with `diagnostics.py` at 100% coverage.
 
 ## Procedural instructions for future agents
 
