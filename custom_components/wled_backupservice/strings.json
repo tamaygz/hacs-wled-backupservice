@@ -221,10 +221,10 @@
       "message": "Restore is not available until the restore engine is implemented."
     },
     "invalid_device_target": {
-      "message": "Device target '{target}' is not a Home Assistant WLED device."
+      "message": "Device target {target} is not a Home Assistant WLED device."
     },
     "unresolved_device_target": {
-      "message": "WLED device target '{target}' could not be resolved for backup."
+      "message": "WLED device target {target} could not be resolved for backup."
     }
   }
 }
