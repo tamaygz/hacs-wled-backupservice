@@ -1,0 +1,10 @@
+
+[dev]
+aioresponses<0.8.0,>=0.7.8
+homeassistant==2024.3.3
+mypy<1.19.0,>=1.18.0
+pytest<8.1.0,>=8.0.2
+pytest-asyncio<0.24.0,>=0.23.5
+pytest-cov<4.2.0,>=4.1.0
+pytest-homeassistant-custom-component==0.13.109
+ruff<0.14.0,>=0.13.0

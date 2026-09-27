@@ -1,0 +1,9 @@
+LICENSE
+README.md
+pyproject.toml
+hacs_wled_backupservice.egg-info/PKG-INFO
+hacs_wled_backupservice.egg-info/SOURCES.txt
+hacs_wled_backupservice.egg-info/dependency_links.txt
+hacs_wled_backupservice.egg-info/requires.txt
+hacs_wled_backupservice.egg-info/top_level.txt
+tests/test_import.py

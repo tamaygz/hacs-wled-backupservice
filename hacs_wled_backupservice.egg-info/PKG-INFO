@@ -1,0 +1,25 @@
+Metadata-Version: 2.4
+Name: hacs-wled-backupservice
+Version: 0.0.0
+Summary: Development tooling configuration for the WLED Backup Service custom integration
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: aioresponses<0.8.0,>=0.7.8; extra == "dev"
+Requires-Dist: homeassistant==2024.3.3; extra == "dev"
+Requires-Dist: mypy<1.19.0,>=1.18.0; extra == "dev"
+Requires-Dist: pytest<8.1.0,>=8.0.2; extra == "dev"
+Requires-Dist: pytest-asyncio<0.24.0,>=0.23.5; extra == "dev"
+Requires-Dist: pytest-cov<4.2.0,>=4.1.0; extra == "dev"
+Requires-Dist: pytest-homeassistant-custom-component==0.13.109; extra == "dev"
+Requires-Dist: ruff<0.14.0,>=0.13.0; extra == "dev"
+Dynamic: license-file
+
+# WLED Backup Service
+
+Native Home Assistant custom integration for backing up and restoring WLED device
+configuration and presets.
+
+Work in progress. See the roadmap under `docs/prompts/plans/` for the current
+implementation sequence.
