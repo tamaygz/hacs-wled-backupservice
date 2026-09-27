@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [http, aiohttp, wled-api]
 ---
 
 # 06 — Async WLED client
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -112,16 +112,37 @@ custom_components/wled_backupservice/wled_client.py
 
 ## Acceptance criteria
 
-- [ ] All read methods parse and validate; all raise typed errors on failure.
-- [ ] `async_set_config` posts to `/json/cfg` and detects failure.
-- [ ] `async_upload_presets` targets `/edit` multipart and is capability-gated + tested.
-- [ ] No blocking I/O; shared HA session used.
-- [ ] >95% coverage for `wled_client.py`.
+- [x] All read methods parse and validate; all raise typed errors on failure.
+- [x] `async_set_config` posts to `/json/cfg` and detects failure.
+- [x] `async_upload_presets` targets `/edit` multipart and is capability-gated + tested.
+- [x] No blocking I/O; shared HA session used.
+- [x] >95% coverage for `wled_client.py`.
 
 ## Definition of done
 
 The client can read all backup artifacts and perform config/preset restore against mocked
 WLED responses, with precise error typing and no event-loop blocking.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The client is implemented as a minimal purpose-built `aiohttp` wrapper instead of adding
+  `python-wled`, because the backup surface needs raw `/json/cfg` access plus `presets.json`
+  file transfer support that the generic state/info library does not guarantee.
+- Preset restore is implemented against `/edit` as a multipart upload using field name
+  `data` and filename `presets.json`, matching the documented UI workflow. This path is
+  still marked by the client as `presets_upload_verified = False` until it is exercised
+  against real firmware in a later restore/integration-test slice.
+- Write helpers accept successful non-JSON response bodies, but they still inspect JSON ack
+  payloads when present and surface explicit `{success:false}` or `error` bodies as
+  `WLEDConnectionError`.
+- Response-size enforcement is currently applied to `/presets.json` downloads only, with a
+  default cap of 5 MiB.
 
 ## References
 

@@ -49,7 +49,7 @@ Home Assistant ──▶ WLED Backup Service
 | 03 | [Integration skeleton & lifecycle](03_integration_skeleton_lifecycle.md)          | ✅ Complete   | 02         | `__init__.py`, typed `runtime_data`, manager shell, service-registration stub, and lifecycle tests all pass |
 | 04 | [Config flow & options flow](04_config_options_flow.md)                            | ✅ Complete   | 03         | Single-instance config flow, multi-step options flow, shared subdir validation, and >95% `config_flow.py` coverage validated |
 | 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ✅ Complete   | 03         | `discovery.py` maps `wled` config entries to stable devices and resolves HA device targets safely |
-| 06 | [Async WLED client](06_wled_client.md)                                             | ⬜ Not started | 02         | `info`/`cfg`/`presets`/`state` GET + `cfg` POST + `/edit` upload |
+| 06 | [Async WLED client](06_wled_client.md)                                             | ✅ Complete   | 02         | `wled_client.py` covers typed reads, write error mapping, `/edit` multipart upload, and >95% file coverage |
 | 07 | [Storage service](07_storage_service.md)                                           | ⬜ Not started | 02         | Path validation, atomic writes, manifest + sha256 |
 | 08 | [Backup engine](08_backup_engine.md)                                               | ⬜ Not started | 05,06,07   | `async_backup_device`, `async_backup_all` |
 | 09 | [Retention policy](09_retention.md)                                                | ⬜ Not started | 07,08      | Count + age retention, safe pruning |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, and 05 are complete. The next eligible plan is 06.
+- Plans 01, 02, 03, 04, 05, and 06 are complete. The next eligible plan is 07.
 
 ## Dependency overview
 
@@ -109,6 +109,9 @@ coverage gate, and fills any gaps.
 - Plan 05 uses a similar compatibility split inside `discovery.py`: newer scoped device
   registry lookups are preferred when present, but the pinned HA stack still requires a
   fallback to `DeviceRegistry.async_get_device(...)` plus config-entry ownership filtering.
+- Plan 06 implements preset restore against `/edit` with multipart field name `data` and
+  filename `presets.json`, but still marks that capability as unverified until real-firmware
+  integration coverage is added during restore work.
 
 ## Procedural instructions for future agents
 
