@@ -1,8 +1,12 @@
 backup:
-  target:
-    device:
-      integration: wled
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          filter:
+            - integration: wled
+          multiple: true
     include_presets:
       required: false
       selector:
@@ -37,10 +41,14 @@ backup_all:
     optional: true
 
 restore:
-  target:
-    device:
-      integration: wled
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          filter:
+            - integration: wled
+          multiple: false
     backup_id:
       required: true
       selector:
@@ -69,10 +77,14 @@ restore:
     optional: true
 
 list_backups:
-  target:
-    device:
-      integration: wled
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          filter:
+            - integration: wled
+          multiple: false
     limit:
       required: false
       selector:
@@ -93,10 +105,14 @@ delete_backup:
     optional: true
 
 prune:
-  target:
-    device:
-      integration: wled
   fields:
+    device_id:
+      required: false
+      selector:
+        device:
+          filter:
+            - integration: wled
+          multiple: true
     dry_run:
       required: false
       selector:
