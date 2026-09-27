@@ -4,7 +4,7 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Blocked'
 tags: [bootstrap, tooling, structure]
 ---
 
@@ -111,6 +111,24 @@ info.md              # skeleton (full content in 17)
 
 Repository can be cloned, dev dependencies installed, and `pytest`/`ruff`/`mypy` run
 without harness errors. No integration logic yet.
+
+## Open questions / discoveries
+
+- 2026-09-27: The bootstrap now uses a repo-local Python 3.11 virtual environment at
+  `.venv-py311/`. A system Python 3.14 interpreter is available, but the pinned HA 2024.3.3
+  test stack is not compatible with Python 3.14 because its dependency line expects Python
+  < 3.14.
+- 2026-09-27: An earlier mistaken install into `C:\Users\Tamay\.platformio\penv` was
+  rolled back and the downgraded packages were restored. Continue using a repo-local venv
+  only for this project.
+- 2026-09-27: `ruff` and `mypy` pass in `.venv-py311`, but `pytest` is blocked on Windows
+  when `pytest-homeassistant-custom-component==0.13.109` is loaded: the HA/pytest stack
+  disables sockets before the event loop is created, so even the bootstrap smoke test fails
+  with `pytest_socket.SocketBlockedError` during `event_loop` setup.
+- 2026-09-27: Before proceeding, decide whether plan 01 should relax the immediate plugin
+  requirement for the smoke test on Windows, or whether the bootstrap environment should be
+  moved to a different interpreter/OS combination that avoids this plugin-level socket
+  blocker.
 
 ## References
 

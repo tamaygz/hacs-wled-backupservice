@@ -44,7 +44,7 @@ Home Assistant ──▶ WLED Backup Service
 
 | #  | Plan                                                                              | Status         | Depends on | Notes |
 |----|-----------------------------------------------------------------------------------|----------------|------------|-------|
-| 01 | [Repository bootstrap & tooling](01_repository_bootstrap.md)                       | ⬜ Not started | —          | Repo skeleton, `pyproject.toml`, license, gitignore, test scaffolding |
+| 01 | [Repository bootstrap & tooling](01_repository_bootstrap.md)                       | 🔴 Blocked    | —          | Scaffold is in place; repo-local venv and static checks pass, but `pytest-homeassistant-custom-component` blocks event-loop setup on Windows during the smoke test |
 | 02 | [Manifest, HACS metadata, branding, foundations](02_manifest_hacs_foundations.md) | ⬜ Not started | 01         | `manifest.json`, `hacs.json`, brands, `const.py`, `exceptions.py` |
 | 03 | [Integration skeleton & lifecycle](03_integration_skeleton_lifecycle.md)          | ⬜ Not started | 02         | `__init__.py`, typed `runtime_data`, manager stub, entry loads/unloads |
 | 04 | [Config flow & options flow](04_config_options_flow.md)                            | ⬜ Not started | 03         | Single-instance config flow + full options flow + schema |
@@ -63,6 +63,13 @@ Home Assistant ──▶ WLED Backup Service
 | 17 | [Documentation & release](17_documentation_release.md)                            | ⬜ Not started | 16         | README, info.md, quality_scale, GitHub release |
 
 Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
+
+## Current blocker
+
+- Plan 01 is blocked on the Windows bootstrap test path. The repo-local `.venv-py311`
+  environment is working, and `ruff`/`mypy` pass, but the required HA pytest plugin stack
+  fails before the smoke test body runs because sockets are blocked during event-loop
+  creation. Resolve that test-harness issue before moving to plan 02.
 
 ## Dependency overview
 
