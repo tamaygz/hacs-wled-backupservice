@@ -15,7 +15,7 @@ from custom_components.wled_backupservice.diagnostics import (
     async_get_config_entry_diagnostics,
 )
 from custom_components.wled_backupservice.discovery import WLEDDevice
-from custom_components.wled_backupservice.manager import WLEDBackupManager
+from custom_components.wled_backupservice.manager import INTEGRATION_VERSION, WLEDBackupManager
 from custom_components.wled_backupservice.storage import (
     StoredBackup,
     StoredBackupDevice,
@@ -88,7 +88,7 @@ async def test_diagnostics_returns_redacted_metadata() -> None:
                 backup_id="kitchen/2026/09/27/040000",
                 path=Path("C:/backups/kitchen/2026/09/27/040000"),
                 created_at=datetime(2026, 9, 27, 4, 0, 0, tzinfo=UTC),
-                integration_version="1.0.0",
+                integration_version=INTEGRATION_VERSION,
                 device=StoredBackupDevice(
                     name="Kitchen",
                     host="10.0.0.10",
@@ -107,7 +107,7 @@ async def test_diagnostics_returns_redacted_metadata() -> None:
 
     result = await async_get_config_entry_diagnostics(SimpleNamespace(), entry)
 
-    assert result["integration"]["version"] == "1.0.0"
+    assert result["integration"]["version"] == INTEGRATION_VERSION
     assert result["entry"]["data"]["host"] == "**REDACTED**"
     assert result["entry"]["data"]["mac"] == "**REDACTED**"
     assert result["runtime"]["last_backup_status"] == "success"
