@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [manifest, hacs, const, exceptions, branding]
 ---
 
 # 02 — Manifest, HACS metadata, branding & foundations
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -130,16 +130,26 @@ brand/README.md            # note pointing to home-assistant/brands submission
 
 ## Acceptance criteria
 
-- [ ] `manifest.json` includes `issue_tracker` and `single_config_entry: true`.
-- [ ] `hacs.json` present at repo root with a justified `homeassistant` floor.
-- [ ] `const.py` exposes all option keys/defaults referenced by later plans.
-- [ ] `exceptions.py` hierarchy present, all subclassing `HomeAssistantError`.
-- [ ] Branding submission process documented.
+- [x] `manifest.json` includes `issue_tracker` and `single_config_entry: true`.
+- [x] `hacs.json` present at repo root with a justified `homeassistant` floor.
+- [x] `const.py` exposes all option keys/defaults referenced by later plans.
+- [x] `exceptions.py` hierarchy present, all subclassing `HomeAssistantError`.
+- [x] Branding submission process documented.
 
 ## Definition of done
 
 HACS/hassfest can recognize the integration's metadata (full validation in plan 16), and
 downstream plans can `from .const import ...` / `from .exceptions import ...`.
+
+## Open questions / discoveries
+
+- 2026-09-27: The repository now includes `brand/icon.png` as a temporary local HACS brand
+  asset placeholder so the repo structure matches HACS integration requirements. Replace it
+  with the final branded icon before release.
+- 2026-09-27: `hacs.json` now declares a 2025.12.0 HA floor, while local development is
+  still pinned to Home Assistant 2024.3.3 in `pyproject.toml` because the current repo
+  bootstrap venv is Python 3.11. Reconcile the local dev/test stack with the published HA
+  floor in a later environment upgrade pass before release.
 
 ## References
 

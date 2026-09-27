@@ -45,7 +45,7 @@ Home Assistant ──▶ WLED Backup Service
 | #  | Plan                                                                              | Status         | Depends on | Notes |
 |----|-----------------------------------------------------------------------------------|----------------|------------|-------|
 | 01 | [Repository bootstrap & tooling](01_repository_bootstrap.md)                       | ✅ Complete   | —          | Repo scaffold, repo-local `.venv-py311`, smoke test, Ruff, and mypy all pass |
-| 02 | [Manifest, HACS metadata, branding, foundations](02_manifest_hacs_foundations.md) | ⬜ Not started | 01         | `manifest.json`, `hacs.json`, brands, `const.py`, `exceptions.py` |
+| 02 | [Manifest, HACS metadata, branding, foundations](02_manifest_hacs_foundations.md) | ✅ Complete   | 01         | `manifest.json`, `hacs.json`, `const.py`, `exceptions.py`, and HACS repo branding placeholder are in place |
 | 03 | [Integration skeleton & lifecycle](03_integration_skeleton_lifecycle.md)          | ⬜ Not started | 02         | `__init__.py`, typed `runtime_data`, manager stub, entry loads/unloads |
 | 04 | [Config flow & options flow](04_config_options_flow.md)                            | ⬜ Not started | 03         | Single-instance config flow + full options flow + schema |
 | 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ⬜ Not started | 03         | Discover via `wled` config entries + device registry |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plan 01 is complete. The next eligible plan is 02.
+- Plans 01 and 02 are complete. The next eligible plan is 03.
 
 ## Dependency overview
 
