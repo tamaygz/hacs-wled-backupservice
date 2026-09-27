@@ -48,7 +48,7 @@ permissions:
 jobs:
   release:
     name: Cut release on ${{ github.ref_name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Validate branch invocation
@@ -59,7 +59,7 @@ jobs:
           fi
 
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
