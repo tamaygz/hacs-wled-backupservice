@@ -13,6 +13,26 @@ from custom_components.wled_backupservice.manager import WLEDBackupManager
 from custom_components.wled_backupservice.services import SERVICES_REGISTERED_KEY
 
 
+class FakeServices:
+    """Minimal service registry stand-in for lifecycle tests."""
+
+    def __init__(self) -> None:
+        self._services: set[tuple[str, str]] = set()
+
+    def has_service(self, domain: str, service: str) -> bool:
+        return (domain, service) in self._services
+
+    def async_register(
+        self,
+        domain: str,
+        service: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        del args, kwargs
+        self._services.add((domain, service))
+
+
 class FakeEntry:
     """Minimal config-entry stand-in for lifecycle tests."""
 
@@ -65,7 +85,7 @@ def test_async_unload_entry_calls_manager_shutdown(socket_enabled: None) -> None
 def test_async_setup_registers_services_idempotently(socket_enabled: None) -> None:
     """Domain setup should register services only once."""
     _ = socket_enabled
-    hass = SimpleNamespace(data={})
+    hass = SimpleNamespace(data={}, services=FakeServices())
 
     assert asyncio.run(integration.async_setup(hass, {})) is True
     assert hass.data[SERVICES_REGISTERED_KEY] is True

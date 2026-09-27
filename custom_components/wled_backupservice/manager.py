@@ -189,11 +189,33 @@ class WLEDBackupManager:
 
     async def async_list_backups(self, *args: Any, **kwargs: Any) -> Any:
         """List available backups."""
-        raise NotImplementedError
+        del args
+        device = kwargs.pop("device", None)
+        limit = kwargs.pop("limit", None)
+        if kwargs:
+            raise TypeError(f"Unexpected list_backups kwargs: {sorted(kwargs)}")
+
+        self._ensure_storage()
+        storage = self.storage
+        assert storage is not None
+
+        device_id = getattr(device, "device_id", device)
+        backups = await storage.async_list(device_id)
+        if limit is not None:
+            backups = backups[: int(limit)]
+        return backups
 
     async def async_delete_backup(self, *args: Any, **kwargs: Any) -> Any:
         """Delete a backup."""
-        raise NotImplementedError
+        del args
+        backup_id = kwargs.pop("backup_id")
+        if kwargs:
+            raise TypeError(f"Unexpected delete_backup kwargs: {sorted(kwargs)}")
+
+        self._ensure_storage()
+        storage = self.storage
+        assert storage is not None
+        await storage.async_delete(str(backup_id))
 
     async def async_prune(self, *args: Any, **kwargs: Any) -> Any:
         """Prune old backups."""

@@ -1,0 +1,110 @@
+backup:
+  target:
+    device:
+      integration: wled
+  fields:
+    include_presets:
+      required: false
+      selector:
+        boolean:
+      example: true
+    include_state:
+      required: false
+      selector:
+        boolean:
+      example: false
+    label:
+      required: false
+      selector:
+        text:
+      example: before-upgrade
+  response:
+    optional: true
+
+backup_all:
+  fields:
+    include_presets:
+      required: false
+      selector:
+        boolean:
+      example: true
+    include_state:
+      required: false
+      selector:
+        boolean:
+      example: false
+  response:
+    optional: true
+
+restore:
+  target:
+    device:
+      integration: wled
+  fields:
+    backup_id:
+      required: true
+      selector:
+        text:
+    backup_before_restore:
+      required: false
+      selector:
+        boolean:
+    restore_config:
+      required: false
+      selector:
+        boolean:
+    restore_presets:
+      required: false
+      selector:
+        boolean:
+    verify_after_restore:
+      required: false
+      selector:
+        boolean:
+    reboot_after_restore:
+      required: false
+      selector:
+        boolean:
+  response:
+    optional: true
+
+list_backups:
+  target:
+    device:
+      integration: wled
+  fields:
+    limit:
+      required: false
+      selector:
+        number:
+          min: 1
+          mode: box
+          step: 1
+  response:
+    only: true
+
+delete_backup:
+  fields:
+    backup_id:
+      required: true
+      selector:
+        text:
+  response:
+    optional: true
+
+prune:
+  target:
+    device:
+      integration: wled
+  fields:
+    dry_run:
+      required: false
+      selector:
+        boolean:
+      example: true
+  response:
+    optional: true
+
+discover:
+  response:
+    optional: true

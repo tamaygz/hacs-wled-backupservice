@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [services, actions, api]
 ---
 
 # 10 — Services / actions registration
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -107,16 +107,35 @@ custom_components/wled_backupservice/services.yaml
 
 ## Acceptance criteria
 
-- [ ] All seven actions registered from `async_setup`, idempotent across reloads.
-- [ ] `services.yaml` complete with fields, selectors, descriptions, response.
-- [ ] Response data works for read/return actions.
-- [ ] Arbitrary paths impossible; non-WLED targets rejected.
-- [ ] >95% coverage for `services.py`.
+- [x] All seven actions registered from `async_setup`, idempotent across reloads.
+- [x] `services.yaml` complete with fields, selectors, descriptions, response.
+- [x] Response data works for read/return actions.
+- [x] Arbitrary paths impossible; non-WLED targets rejected.
+- [x] >95% coverage for `services.py`.
 
 ## Definition of done
 
 All actions are usable from the HA Actions UI with correct schemas, response data, safe
 targeting, and meaningful errors; registration survives entry unload.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- Service registration remains independent of loaded config entries: actions are registered
+  from `async_setup`, stay available when no entry is loaded, and raise explicit
+  `HomeAssistantError` messages until runtime state exists.
+- `restore` is registered now, but its handler intentionally raises a clear
+  "not available until the restore engine is implemented" error until plan 11 lands.
+- Response payloads are fully JSON-serialized in `services.py`; dataclasses from backup,
+  retention, discovery, and storage are converted before returning to Home Assistant.
+- Full-suite validation after plan-10 landing is green (`97 passed`, total coverage 93%),
+  while the existing `pytest-asyncio` custom `event_loop` deprecation warning remains an
+  unchanged baseline unrelated to service behavior.
 
 ## References
 

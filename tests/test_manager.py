@@ -385,8 +385,6 @@ async def test_async_setup_and_shutdown_toggle_runtime_state() -> None:
     "method_name",
     [
         "async_restore",
-        "async_list_backups",
-        "async_delete_backup",
     ],
 )
 async def test_unimplemented_manager_methods_raise(method_name: str) -> None:

@@ -53,7 +53,7 @@ Home Assistant ──▶ WLED Backup Service
 | 07 | [Storage service](07_storage_service.md)                                           | ✅ Complete   | 02         | `storage.py` now enforces root containment, atomic stage→replace writes, manifest verification, and backup-id revalidation |
 | 08 | [Backup engine](08_backup_engine.md)                                               | ✅ Complete   | 05,06,07   | Manager now composes discovery, client, and storage into fail-soft per-device backups with structured results |
 | 09 | [Retention policy](09_retention.md)                                                | ✅ Complete   | 07,08      | `retention.py` now applies count/age pruning safely with dry-run and fail-soft delete reporting |
-| 10 | [Services / actions registration](10_services_actions.md)                          | ⬜ Not started | 08,09      | `async_setup` registration, `services.yaml`, response data, targeting |
+| 10 | [Services / actions registration](10_services_actions.md)                          | ✅ Complete   | 08,09      | All seven actions are registered, target-safe, response-capable, and validated with `services.py` at 97% coverage |
 | 11 | [Restore engine](11_restore_engine.md)                                             | ⬜ Not started | 06,07,08   | cfg + presets restore, safety backup, per-device lock, verify |
 | 12 | [Scheduler](12_scheduler.md)                                                       | ⬜ Not started | 08,09      | `async_track_time_interval` / daily time, no-overlap guard |
 | 13 | [Diagnostics](13_diagnostics.md)                                                   | ⬜ Not started | 03,08      | `diagnostics.py`, redaction |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, and 09 are complete. The next eligible plan is 10.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, and 10 are complete. The next eligible plan is 11.
 
 ## Dependency overview
 
@@ -123,6 +123,9 @@ coverage gate, and fills any gaps.
 - Plan 09 adds safe retention pruning as a pure storage-backed operation: count is primary,
   age is an optional secondary filter, deletes are fail-soft, and dry-run reporting is
   available through structured `PruneResult` data.
+- Plan 10 keeps service registration independent from loaded entries and serializes all
+  response payloads to plain dict/list structures. `restore` is registered now but remains
+  intentionally unavailable until plan 11 supplies the engine behind it.
 
 ## Procedural instructions for future agents
 
