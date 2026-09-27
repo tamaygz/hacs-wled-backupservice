@@ -113,9 +113,10 @@ missing keys and clear destructive-action warnings.
 - The restore warning is carried in the translated service description and the options
   behavior-step description: restore is explicitly marked destructive, may affect
   connectivity, and may reboot the device.
-- There are still no code-level `translation_key` consumers for custom exception classes, so
-  no dedicated `exceptions` translation section was required yet; the cross-check test
-  confirms all currently referenced config/options/service keys are present.
+- Follow-up polish replaced the remaining Home Assistant-rendered runtime literals in
+  `services.py` and `discovery.py` with translated exception keys, and moved the `/backup`
+  storage note into the translated storage-step description so the options flow no longer
+  injects a static English placeholder from code.
 - Full-suite validation after plan 14 is green (`121 passed`, `ruff check .`, and
   `mypy custom_components tests`), with the new translation cross-check test passing and the
   existing `pytest-asyncio` custom `event_loop` deprecation warning unchanged.

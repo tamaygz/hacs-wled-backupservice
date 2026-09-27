@@ -245,11 +245,11 @@ def test_async_resolve_target_devices_rejects_non_wled_targets(
 
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(discovery.dr, "async_get", lambda _hass: registry)
-        with pytest.raises(
-            WLEDValidationError,
-            match="not a Home Assistant WLED device",
-        ):
+        with pytest.raises(WLEDValidationError) as exc_info:
             asyncio.run(async_resolve_target_devices(hass, call))
+
+    assert exc_info.value.translation_domain == "wled_backupservice"
+    assert exc_info.value.translation_key == "invalid_device_target"
 
 
 def test_async_resolve_target_devices_returns_targeted_wled_devices(

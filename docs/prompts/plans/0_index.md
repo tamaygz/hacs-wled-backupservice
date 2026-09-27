@@ -138,8 +138,8 @@ coverage gate, and fills any gaps.
   diagnostics and passes the current manifest version into storage.
 - Plan 14 adds flat custom-integration translations in both `translations/en.json` and
   `strings.json`, selector labels for options-flow dropdowns, explicit destructive restore
-  warnings, and a cross-check test that verifies current config/options/service keys are all
-  present in the shipped English text.
+  warnings, translated service/discovery exception messages, and a cross-check test that
+  verifies current config/options/service keys are all present in the shipped English text.
 - Full-suite validation after plan 14 is green (`121 passed`, `ruff check .`, and
   `mypy custom_components tests`).
 
