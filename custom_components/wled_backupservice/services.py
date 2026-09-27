@@ -11,7 +11,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 from .const import DOMAIN
 from .discovery import WLEDDevice, async_resolve_target_devices
-from .models import BackupResult
+from .models import BackupResult, RestoreResult
 from .retention import PruneResult
 from .storage import StoredBackup
 
@@ -123,6 +123,8 @@ async def async_register_services(hass: HomeAssistant) -> None:
             raise HomeAssistantError(
                 "Restore is not available until the restore engine is implemented"
             ) from err
+        if isinstance(response, RestoreResult):
+            return _serialize_restore_result(response)
         return response
 
     async def handle_list_backups(call: ServiceCall) -> dict[str, Any]:
@@ -327,4 +329,22 @@ def _serialize_wled_device(device: WLEDDevice) -> dict[str, Any]:
         "ha_device_id": device.ha_device_id,
         "ha_config_entry_id": device.ha_config_entry_id,
         "firmware_version": device.firmware_version,
+    }
+
+
+def _serialize_restore_result(result: RestoreResult) -> dict[str, Any]:
+    """Convert a restore result into a JSON-serializable response payload."""
+    return {
+        "device_id": result.device_id,
+        "device_name": result.device_name,
+        "backup_id": result.backup_id,
+        "success": result.success,
+        "safety_backup_id": result.safety_backup_id,
+        "config_status": result.config_status,
+        "presets_status": result.presets_status,
+        "verification_status": result.verification_status,
+        "rebooted": result.rebooted,
+        "firmware_mismatch": result.firmware_mismatch,
+        "messages": list(result.messages),
+        "error": result.error,
     }

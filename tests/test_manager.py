@@ -38,6 +38,8 @@ class RecordingStorage:
 
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
+        self.backups: list[StoredBackup] = []
+        self.deleted_ids: list[str] = []
 
     async def async_write_backup(self, **kwargs: object) -> StoredBackup:
         self.calls.append(kwargs)
@@ -68,6 +70,30 @@ class RecordingStorage:
                 for name, content in files.items()
             ),
         )
+
+    async def async_list(self, device_id: str | None = None) -> list[StoredBackup]:
+        if device_id is None:
+            return list(self.backups)
+        return [
+            backup
+            for backup in self.backups
+            if backup.device.device_id == device_id
+        ]
+
+    async def async_delete(self, backup_id: str) -> None:
+        self.deleted_ids.append(backup_id)
+
+
+class FakeRetention:
+    """Retention stub used by manager prune tests."""
+
+    def __init__(self, result: object) -> None:
+        self.result = result
+        self.calls: list[dict[str, object]] = []
+
+    async def async_prune_backups(self, storage: object, **kwargs: object) -> object:
+        self.calls.append({"storage": storage, **kwargs})
+        return self.result
 
 
 class FakeClient:
@@ -378,23 +404,6 @@ async def test_async_setup_and_shutdown_toggle_runtime_state() -> None:
     await manager.async_shutdown()
     assert manager.is_shutdown is True
     assert manager.scheduler_unsub is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "method_name",
-    [
-        "async_restore",
-    ],
-)
-async def test_unimplemented_manager_methods_raise(method_name: str) -> None:
-    """Out-of-scope manager methods should remain explicit stubs in this slice."""
-    manager = _make_manager()
-
-    with pytest.raises(NotImplementedError):
-        await getattr(manager, method_name)()
-
-
 def test_bool_option_json_bytes_and_lock_helpers() -> None:
     """Small manager helpers should resolve options deterministically."""
     manager = _make_manager({"include_presets": False})
@@ -484,3 +493,61 @@ def test_ensure_storage_uses_entry_options(monkeypatch: pytest.MonkeyPatch) -> N
     assert captured["hass"] is manager.hass
     assert captured["storage_root"] == "backup"
     assert captured["subdir"] == "custom_backups"
+
+
+@pytest.mark.asyncio
+async def test_async_list_and_delete_backups_delegate_to_storage() -> None:
+    manager = _make_manager()
+    storage = RecordingStorage()
+    storage.backups = [
+        StoredBackup(
+            backup_id="device-one/2026/09/27/030000",
+            path=Path("C:/backups/device-one/2026/09/27/030000"),
+            created_at=datetime(2026, 9, 27, 3, 0, 0, tzinfo=UTC),
+            integration_version="1.0.0",
+            device=StoredBackupDevice(
+                name="Kitchen",
+                host="10.0.0.10",
+                mac="device-one",
+                device_id="device-one",
+                firmware_version="0.16.0",
+            ),
+            files=(StoredBackupFile(name="cfg.json", size=2, sha256="hash"),),
+        )
+    ]
+    manager.storage = storage
+
+    backups = await manager.async_list_backups(
+        device=_make_device(device_id="device-one")
+    )
+    await manager.async_delete_backup(backup_id="device-one/2026/09/27/030000")
+
+    assert len(backups) == 1
+    assert backups[0].backup_id == "device-one/2026/09/27/030000"
+    assert storage.deleted_ids == ["device-one/2026/09/27/030000"]
+
+
+@pytest.mark.asyncio
+async def test_async_prune_delegates_with_option_defaults() -> None:
+    manager = _make_manager({"retention_count": 5, "retention_days": 2})
+    storage = RecordingStorage()
+    retention_result = object()
+    retention = FakeRetention(retention_result)
+    manager.storage = storage
+    manager.retention = retention
+
+    result = await manager.async_prune(
+        device=_make_device(device_id="device-one"),
+        dry_run=True,
+    )
+
+    assert result is retention_result
+    assert retention.calls == [
+        {
+            "storage": storage,
+            "retention_count": 5,
+            "retention_days": 2,
+            "device": _make_device(device_id="device-one"),
+            "dry_run": True,
+        }
+    ]

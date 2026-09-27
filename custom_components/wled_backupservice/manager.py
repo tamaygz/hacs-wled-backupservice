@@ -13,25 +13,31 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CFG_FILENAME,
+    CONF_BACKUP_BEFORE_RESTORE,
     CONF_INCLUDE_PRESETS,
     CONF_INCLUDE_STATE,
+    CONF_REBOOT_AFTER_RESTORE,
     CONF_RETENTION_COUNT,
     CONF_RETENTION_DAYS,
     CONF_STORAGE_ROOT,
     CONF_SUBDIR,
+    CONF_VERIFY_AFTER_RESTORE,
+    DEFAULT_BACKUP_BEFORE_RESTORE,
     DEFAULT_INCLUDE_PRESETS,
     DEFAULT_INCLUDE_STATE,
+    DEFAULT_REBOOT_AFTER_RESTORE,
     DEFAULT_RETENTION_COUNT,
     DEFAULT_RETENTION_DAYS,
     DEFAULT_STORAGE_ROOT,
     DEFAULT_SUBDIR,
+    DEFAULT_VERIFY_AFTER_RESTORE,
     INFO_FILENAME,
     LOGGER,
     PRESETS_FILENAME,
     STATE_FILENAME,
 )
-from .exceptions import WLEDBackupError, WLEDValidationError
-from .models import BackupResult
+from .exceptions import WLEDBackupError, WLEDRestoreError, WLEDValidationError
+from .models import BackupResult, RestoreResult
 
 if TYPE_CHECKING:
     WLEDBackupConfigEntry: TypeAlias = ConfigEntry["WLEDBackupManager"]
@@ -185,7 +191,167 @@ class WLEDBackupManager:
 
     async def async_restore(self, *args: Any, **kwargs: Any) -> Any:
         """Restore a WLED device backup."""
-        raise NotImplementedError
+        device = args[0] if args else kwargs.pop("device")
+        backup_id = str(kwargs.pop("backup_id"))
+        backup_before_restore = self._bool_option(
+            CONF_BACKUP_BEFORE_RESTORE,
+            DEFAULT_BACKUP_BEFORE_RESTORE,
+            kwargs.pop("backup_before_restore", None),
+        )
+        restore_config = bool(kwargs.pop("restore_config", True))
+        restore_presets = bool(kwargs.pop("restore_presets", True))
+        verify_after_restore = self._bool_option(
+            CONF_VERIFY_AFTER_RESTORE,
+            DEFAULT_VERIFY_AFTER_RESTORE,
+            kwargs.pop("verify_after_restore", None),
+        )
+        reboot_after_restore = self._bool_option(
+            CONF_REBOOT_AFTER_RESTORE,
+            DEFAULT_REBOOT_AFTER_RESTORE,
+            kwargs.pop("reboot_after_restore", None),
+        )
+        if kwargs:
+            raise TypeError(f"Unexpected restore kwargs: {sorted(kwargs)}")
+
+        self._ensure_client_factory()
+        self._ensure_storage()
+        client_factory = self.client_factory
+        storage = self.storage
+        assert client_factory is not None
+        assert storage is not None
+
+        lock = self._async_get_device_lock(device.device_id)
+        async with lock:
+            descriptor = await storage.async_read_backup(backup_id)
+            client = client_factory(device.host)
+            info = await client.async_get_info()
+            self._validate_verified_info(device, info)
+
+            if (
+                descriptor.device.mac
+                and info.mac_address
+                and descriptor.device.mac != info.mac_address
+            ):
+                raise WLEDRestoreError(
+                    f"Backup {backup_id!r} belongs to {descriptor.device.mac}, "
+                    f"not {info.mac_address}"
+                )
+
+            messages: list[str] = []
+            firmware_mismatch = False
+            if (
+                descriptor.device.firmware_version is not None
+                and descriptor.device.firmware_version != info.version
+            ):
+                firmware_mismatch = True
+                messages.append(
+                    f"Backup firmware {descriptor.device.firmware_version} differs "
+                    f"from device firmware {info.version}"
+                )
+                LOGGER.warning(messages[-1])
+
+            safety_backup_id: str | None = None
+            if backup_before_restore:
+                safety_backup = await self.async_backup_device(device)
+                if not safety_backup.success or safety_backup.backup_id is None:
+                    raise WLEDRestoreError(
+                        f"Safety backup failed for {device.name}: "
+                        f"{safety_backup.error or 'unknown error'}"
+                    )
+                safety_backup_id = safety_backup.backup_id
+
+            config_status = "skipped"
+            presets_status = "skipped"
+            verification_status = "skipped"
+            rebooted = False
+
+            if restore_config:
+                cfg_bytes = await storage.async_read_backup_file(
+                    backup_id,
+                    CFG_FILENAME,
+                )
+                cfg_payload = json.loads(cfg_bytes.decode("utf-8"))
+                await client.async_set_config(cfg_payload)
+                config_status = "ok"
+
+            if restore_presets:
+                if not (
+                    client.capabilities.presets_upload_supported
+                    and client.capabilities.presets_upload_verified
+                ):
+                    presets_status = "unsupported"
+                    messages.append(
+                        "Preset restore is unavailable until the upload path is "
+                        "verified"
+                    )
+                else:
+                    presets_bytes = await storage.async_read_backup_file(
+                        backup_id,
+                        PRESETS_FILENAME,
+                    )
+                    await client.async_upload_presets(presets_bytes)
+                    presets_status = "ok"
+
+            if reboot_after_restore and config_status == "ok":
+                await client.async_reboot()
+                rebooted = True
+
+            if verify_after_restore:
+                verification_status = "ok"
+                if config_status == "ok":
+                    expected_cfg = json.loads(
+                        (
+                            await storage.async_read_backup_file(
+                                backup_id,
+                                CFG_FILENAME,
+                            )
+                        ).decode("utf-8")
+                    )
+                    if await client.async_get_config() != expected_cfg:
+                        verification_status = "failed"
+                        messages.append("Config verification failed after restore")
+                if presets_status == "ok":
+                    expected_presets = await storage.async_read_backup_file(
+                        backup_id,
+                        PRESETS_FILENAME,
+                    )
+                    if await client.async_get_presets_raw() != expected_presets:
+                        verification_status = "failed"
+                        messages.append("Presets verification failed after restore")
+
+            success = (
+                config_status in {"ok", "skipped"}
+                and presets_status in {"ok", "skipped", "unsupported"}
+                and verification_status in {"ok", "skipped"}
+            )
+
+            if (
+                not success
+                and config_status != "ok"
+                and presets_status not in {"ok", "unsupported", "skipped"}
+            ):
+                raise WLEDRestoreError(
+                    f"Restore of {backup_id!r} failed for {device.name}"
+                )
+
+            return RestoreResult(
+                device_id=device.device_id,
+                device_name=device.name,
+                backup_id=backup_id,
+                success=success,
+                safety_backup_id=safety_backup_id,
+                config_status=config_status,
+                presets_status=presets_status,
+                verification_status=verification_status,
+                rebooted=rebooted,
+                firmware_mismatch=firmware_mismatch,
+                messages=tuple(messages),
+                error=(
+                    None
+                    if success
+                    else "Restore completed with warnings or partial failure"
+                ),
+            )
 
     async def async_list_backups(self, *args: Any, **kwargs: Any) -> Any:
         """List available backups."""

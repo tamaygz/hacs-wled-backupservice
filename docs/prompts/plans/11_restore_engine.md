@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [restore, safety, destructive]
 ---
 
 # 11 — Restore engine
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -113,17 +113,41 @@ custom_components/wled_backupservice/manager.py     # async_restore entry point
 
 ## Acceptance criteria
 
-- [ ] Backup validated (schema + hashes) before any write.
-- [ ] Identity verified; cross-device restore refused.
-- [ ] Safety backup taken by default; abort on its failure.
-- [ ] Config + presets restored sequentially with per-portion status.
-- [ ] Preset restore honest about unsupported/unverified firmware.
-- [ ] >95% coverage for restore code.
+- [x] Backup validated (schema + hashes) before any write.
+- [x] Identity verified; cross-device restore refused.
+- [x] Safety backup taken by default; abort on its failure.
+- [x] Config + presets restored sequentially with per-portion status.
+- [x] Preset restore honest about unsupported/unverified firmware.
+- [x] >95% coverage for restore code.
 
 ## Definition of done
 
 Restore is safe, sequential, validated, and transparent about partial success and preset-
 restore limitations, with a rollback safety backup by default.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The restore engine landed directly in `manager.py` plus a new `RestoreResult` model and
+   storage raw-file read helper; full-suite validation now drives `manager.py` to 96%
+   coverage, satisfying the restore-plan coverage gate without a separate `restore.py`
+   module.
+- Preset restore only reports `ok` when the WLED client marks `/edit` upload support as
+   both available and verified; otherwise the result stays honest with
+   `presets_status="unsupported"` plus a warning message.
+- Restore keeps the per-device lock for the full operation, takes a fresh safety backup by
+   default, refuses cross-device MAC mismatches, and downgrades firmware drift to a warning
+   rather than a hard block.
+- The restore action in `services.py` now returns serialized `RestoreResult` payloads
+   instead of the temporary “not available yet” error from plan 10.
+- Full-suite validation after plan-11 landing is green (`108 passed`, `manager.py` 96%
+   coverage, total coverage 94%). The existing `pytest-asyncio` custom `event_loop`
+   deprecation warning remains an unchanged baseline unrelated to restore behavior.
 
 ## References
 

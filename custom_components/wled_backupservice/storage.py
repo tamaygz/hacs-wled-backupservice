@@ -110,6 +110,14 @@ class BackupStorage:
             backup_id,
         )
 
+    async def async_read_backup_file(self, backup_id: str, file_name: str) -> bytes:
+        """Read a validated backup file by name."""
+        return await self.hass.async_add_executor_job(
+            self._read_backup_file_sync,
+            backup_id,
+            file_name,
+        )
+
     async def async_list(self, device_id: str | None = None) -> list[StoredBackup]:
         """List valid backups under the configured root."""
         return await self.hass.async_add_executor_job(
@@ -202,6 +210,24 @@ class BackupStorage:
         backup_root = self._resolved_backup_root(self._resolved_storage_root())
         backup_dir = self._resolve_backup_id_sync(backup_id)
         return self._read_backup_from_path_sync(backup_dir, backup_id, backup_root)
+
+    def _read_backup_file_sync(self, backup_id: str, file_name: str) -> bytes:
+        backup_root = self._resolved_backup_root(self._resolved_storage_root())
+        backup_dir = self._resolve_backup_id_sync(backup_id)
+        descriptor = self._read_backup_from_path_sync(
+            backup_dir,
+            backup_id,
+            backup_root,
+        )
+        normalized_name = self._validate_file_name(file_name)
+        if normalized_name not in {
+            stored_file.name for stored_file in descriptor.files
+        }:
+            raise WLEDStorageError(
+                f"Backup {backup_id!r} does not contain file {normalized_name!r}"
+            )
+        file_path = self._assert_within_root(backup_dir / normalized_name, backup_root)
+        return file_path.read_bytes()
 
     def _list_backups_sync(self, device_id: str | None) -> list[StoredBackup]:
         backup_root = self._resolved_backup_root(self._resolved_storage_root())

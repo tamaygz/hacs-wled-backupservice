@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'In Progress'
 tags: [index, roadmap, home-assistant, hacs, wled]
 ---
 
 # 0 — Master Execution Index
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: In%20Progress](https://img.shields.io/badge/status-In%20Progress-yellow)
 
 ## Project overview
 
@@ -54,7 +54,7 @@ Home Assistant ──▶ WLED Backup Service
 | 08 | [Backup engine](08_backup_engine.md)                                               | ✅ Complete   | 05,06,07   | Manager now composes discovery, client, and storage into fail-soft per-device backups with structured results |
 | 09 | [Retention policy](09_retention.md)                                                | ✅ Complete   | 07,08      | `retention.py` now applies count/age pruning safely with dry-run and fail-soft delete reporting |
 | 10 | [Services / actions registration](10_services_actions.md)                          | ✅ Complete   | 08,09      | All seven actions are registered, target-safe, response-capable, and validated with `services.py` at 97% coverage |
-| 11 | [Restore engine](11_restore_engine.md)                                             | ⬜ Not started | 06,07,08   | cfg + presets restore, safety backup, per-device lock, verify |
+| 11 | [Restore engine](11_restore_engine.md)                                             | ✅ Complete   | 06,07,08   | Safety-backed cfg + presets restore is live, target-safe, and validated with `manager.py` at 96% coverage |
 | 12 | [Scheduler](12_scheduler.md)                                                       | ⬜ Not started | 08,09      | `async_track_time_interval` / daily time, no-overlap guard |
 | 13 | [Diagnostics](13_diagnostics.md)                                                   | ⬜ Not started | 03,08      | `diagnostics.py`, redaction |
 | 14 | [Translations & UI polish](14_translations_ui.md)                                  | ⬜ Not started | 04,10,11   | `translations/en.json`, `strings.json`, `data_description` |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, and 10 are complete. The next eligible plan is 11.
+- Plans 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, and 11 are complete. The next eligible plan is 12.
 
 ## Dependency overview
 
@@ -124,8 +124,12 @@ coverage gate, and fills any gaps.
   age is an optional secondary filter, deletes are fail-soft, and dry-run reporting is
   available through structured `PruneResult` data.
 - Plan 10 keeps service registration independent from loaded entries and serializes all
-  response payloads to plain dict/list structures. `restore` is registered now but remains
-  intentionally unavailable until plan 11 supplies the engine behind it.
+  response payloads to plain dict/list structures.
+- Plan 11 implements restore directly in `manager.py` with safety backup by default,
+  per-device serialization, cross-device MAC refusal, firmware-drift warnings, and honest
+  `unsupported` reporting when preset upload is unavailable or unverified.
+- Full-suite validation after plan 11 is green (`108 passed`, `ruff check .`, and
+  `mypy custom_components tests`), with `manager.py` now at 96% coverage.
 
 ## Procedural instructions for future agents
 
