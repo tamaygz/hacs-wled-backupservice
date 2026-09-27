@@ -85,4 +85,4 @@ prune:
         boolean:
       example: true
 
-discover:
+discover: {}
