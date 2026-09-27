@@ -50,7 +50,7 @@ Home Assistant ──▶ WLED Backup Service
 | 04 | [Config flow & options flow](04_config_options_flow.md)                            | ✅ Complete   | 03         | Single-instance config flow, multi-step options flow, shared subdir validation, and >95% `config_flow.py` coverage validated |
 | 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ✅ Complete   | 03         | `discovery.py` maps `wled` config entries to stable devices and resolves HA device targets safely |
 | 06 | [Async WLED client](06_wled_client.md)                                             | ✅ Complete   | 02         | `wled_client.py` covers typed reads, write error mapping, `/edit` multipart upload, and >95% file coverage |
-| 07 | [Storage service](07_storage_service.md)                                           | ⬜ Not started | 02         | Path validation, atomic writes, manifest + sha256 |
+| 07 | [Storage service](07_storage_service.md)                                           | ✅ Complete   | 02         | `storage.py` now enforces root containment, atomic stage→replace writes, manifest verification, and backup-id revalidation |
 | 08 | [Backup engine](08_backup_engine.md)                                               | ⬜ Not started | 05,06,07   | `async_backup_device`, `async_backup_all` |
 | 09 | [Retention policy](09_retention.md)                                                | ⬜ Not started | 07,08      | Count + age retention, safe pruning |
 | 10 | [Services / actions registration](10_services_actions.md)                          | ⬜ Not started | 08,09      | `async_setup` registration, `services.yaml`, response data, targeting |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, and 06 are complete. The next eligible plan is 07.
+- Plans 01, 02, 03, 04, 05, 06, and 07 are complete. The next eligible plan is 08.
 
 ## Dependency overview
 
@@ -112,6 +112,10 @@ coverage gate, and fills any gaps.
 - Plan 06 implements preset restore against `/edit` with multipart field name `data` and
   filename `presets.json`, but still marks that capability as unverified until real-firmware
   integration coverage is added during restore work.
+- Plan 07 hardens storage error consistency by translating shared validator exceptions
+  (`vol.Invalid`) to integration-level `WLEDValidationError`, and validates atomic staging
+  cleanup plus manifest/hash integrity with dedicated storage tests (`storage.py` at 98%
+  coverage).
 
 ## Procedural instructions for future agents
 

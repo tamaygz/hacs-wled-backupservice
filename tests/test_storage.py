@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import shutil
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
-import shutil
 from types import SimpleNamespace
+from typing import Any, TypeVar
 
 import pytest
 
@@ -16,6 +18,8 @@ from custom_components.wled_backupservice.exceptions import (
     WLEDValidationError,
 )
 from custom_components.wled_backupservice.storage import BackupStorage
+
+_T = TypeVar("_T")
 
 
 class FakeHass:
@@ -30,7 +34,7 @@ class FakeHass:
         """Return the number of executor invocations made so far."""
         return self._executor_calls
 
-    async def async_add_executor_job(self, func, *args):
+    async def async_add_executor_job(self, func: Callable[..., _T], *args: Any) -> _T:
         """Run a blocking function synchronously while recording the offload call."""
         self._executor_calls += 1
         return func(*args)
@@ -113,7 +117,7 @@ def test_atomic_commit_cleans_staging_on_failure(
     socket_enabled: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A failure before manifest commit should not leave a final or staging directory."""
+    """A pre-commit failure should not leave final or staging directories."""
     _ = socket_enabled
     storage = _make_storage(tmp_path)
 
@@ -229,7 +233,16 @@ def test_async_list_skips_unknown_dirs_and_sorts_newest_first(
             created_at=datetime(2026, 9, 27, 2, 44, 0, tzinfo=UTC),
         )
     )
-    unknown_dir = tmp_path / "config-root" / "wled_backups" / "unknown" / "2026" / "09" / "27" / "999999"
+    unknown_dir = (
+        tmp_path
+        / "config-root"
+        / "wled_backups"
+        / "unknown"
+        / "2026"
+        / "09"
+        / "27"
+        / "999999"
+    )
     unknown_dir.mkdir(parents=True)
 
     backups = asyncio.run(storage.async_list())
@@ -259,7 +272,16 @@ def test_delete_refuses_unknown_dirs_and_deletes_valid_backup(
     with pytest.raises(WLEDBackupNotFoundError):
         asyncio.run(storage.async_read_backup(backup.backup_id))
 
-    unknown_dir = tmp_path / "config-root" / "wled_backups" / "odd" / "2026" / "09" / "27" / "020000"
+    unknown_dir = (
+        tmp_path
+        / "config-root"
+        / "wled_backups"
+        / "odd"
+        / "2026"
+        / "09"
+        / "27"
+        / "020000"
+    )
     unknown_dir.mkdir(parents=True)
     with pytest.raises(WLEDStorageError, match="missing manifest.json"):
         asyncio.run(storage.async_delete("odd/2026/09/27/020000"))
@@ -286,7 +308,13 @@ def test_storage_root_must_exist(
     _ = socket_enabled
     storage = _make_storage(tmp_path, storage_root="share")
     missing_root = str(tmp_path / "missing-share")
-    monkeypatch.setitem(__import__("custom_components.wled_backupservice.storage", fromlist=["STORAGE_ROOTS"]).STORAGE_ROOTS, "share", missing_root)
+    monkeypatch.setitem(
+        __import__(
+            "custom_components.wled_backupservice.storage", fromlist=["STORAGE_ROOTS"]
+        ).STORAGE_ROOTS,
+        "share",
+        missing_root,
+    )
 
     with pytest.raises(WLEDStorageError, match="does not exist"):
         asyncio.run(
@@ -378,7 +406,16 @@ def test_async_list_filters_by_device_id_and_skips_invalid_manifests(
             created_at=datetime(2026, 9, 27, 2, 44, 0, tzinfo=UTC),
         )
     )
-    broken_manifest = tmp_path / "config-root" / "wled_backups" / "broken" / "2026" / "09" / "27" / "000000"
+    broken_manifest = (
+        tmp_path
+        / "config-root"
+        / "wled_backups"
+        / "broken"
+        / "2026"
+        / "09"
+        / "27"
+        / "000000"
+    )
     broken_manifest.mkdir(parents=True)
     (broken_manifest / "manifest.json").write_text("{}", encoding="utf-8")
 
@@ -513,16 +550,14 @@ def test_write_backup_rejects_invalid_file_names_and_unknown_storage_root(
 
     storage = _make_storage(tmp_path, storage_root="invalid-root")
     with pytest.raises(WLEDValidationError, match="Unsupported storage root"):
-        asyncio.run(
-            storage.async_list()
-        )
+        asyncio.run(storage.async_list())
 
 
 def test_write_backup_detects_existing_final_directory_and_normalizes_naive_datetime(
     tmp_path: Path,
     socket_enabled: None,
 ) -> None:
-    """Existing final directories should fail and naive datetimes should be normalized."""
+    """Fail when final dir exists and normalize naive datetimes."""
     _ = socket_enabled
     storage = _make_storage(tmp_path)
     created_at = datetime(2026, 9, 27, 2, 43, 0)

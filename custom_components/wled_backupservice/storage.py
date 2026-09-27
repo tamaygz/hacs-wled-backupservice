@@ -2,20 +2,21 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import shutil
 import tempfile
-from typing import Any, Mapping
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any
 
+import voluptuous as vol
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-import voluptuous as vol
 
 from .const import BACKUP_SCHEMA_VERSION, MANIFEST_FILENAME, STORAGE_ROOTS
 from .exceptions import (
@@ -111,7 +112,9 @@ class BackupStorage:
 
     async def async_list(self, device_id: str | None = None) -> list[StoredBackup]:
         """List valid backups under the configured root."""
-        return await self.hass.async_add_executor_job(self._list_backups_sync, device_id)
+        return await self.hass.async_add_executor_job(
+            self._list_backups_sync, device_id
+        )
 
     async def async_delete(self, backup_id: str) -> None:
         """Delete a validated backup directory."""
@@ -142,14 +145,18 @@ class BackupStorage:
         device_dir = self._device_dir_name(device_name, device_id)
         created = self._normalize_datetime(created_at)
 
-        final_parent = backup_root / device_dir / created.strftime("%Y") / created.strftime("%m") / created.strftime("%d")
+        final_parent = (
+            backup_root
+            / device_dir
+            / created.strftime("%Y")
+            / created.strftime("%m")
+            / created.strftime("%d")
+        )
         final_name = created.strftime("%H%M%S")
         final_dir = self._assert_within_root(final_parent / final_name, backup_root)
 
         final_parent.mkdir(parents=True, exist_ok=True)
-        staging_dir = Path(
-            tempfile.mkdtemp(prefix=f".{final_name}-", dir=final_parent)
-        )
+        staging_dir = Path(tempfile.mkdtemp(prefix=f".{final_name}-", dir=final_parent))
 
         try:
             manifest_files: list[StoredBackupFile] = []
@@ -233,10 +240,16 @@ class BackupStorage:
             raise WLEDValidationError("Backup ids must not contain drive prefixes")
 
         relative_path = PurePosixPath(relative_id)
-        if relative_path.is_absolute() or any(part in ("", ".", "..") for part in relative_path.parts):
-            raise WLEDValidationError("Backup ids must be relative paths inside the storage root")
+        if relative_path.is_absolute() or any(
+            part in ("", ".", "..") for part in relative_path.parts
+        ):
+            raise WLEDValidationError(
+                "Backup ids must be relative paths inside the storage root"
+            )
 
-        resolved = self._assert_within_root(backup_root.joinpath(*relative_path.parts), backup_root)
+        resolved = self._assert_within_root(
+            backup_root.joinpath(*relative_path.parts), backup_root
+        )
         if not resolved.exists() or not resolved.is_dir():
             raise WLEDBackupNotFoundError(f"Backup {backup_id!r} was not found")
         return resolved
@@ -250,12 +263,15 @@ class BackupStorage:
         backup_dir = self._assert_within_root(backup_dir, backup_root)
         manifest_path = backup_dir / MANIFEST_FILENAME
         if not manifest_path.exists():
-            raise WLEDStorageError(f"Backup {backup_id!r} is missing {MANIFEST_FILENAME}")
+            raise WLEDStorageError(
+                f"Backup {backup_id!r} is missing {MANIFEST_FILENAME}"
+            )
 
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if manifest.get("schema_version") != BACKUP_SCHEMA_VERSION:
+            schema_version = manifest.get("schema_version")
             raise WLEDStorageError(
-                f"Backup {backup_id!r} uses unsupported schema {manifest.get('schema_version')!r}"
+                f"Backup {backup_id!r} uses unsupported schema {schema_version!r}"
             )
 
         created_at_raw = manifest.get("created_at")
@@ -274,7 +290,9 @@ class BackupStorage:
                 size=int(file_info["size"]),
                 sha256=str(file_info["sha256"]),
             )
-            file_path = self._assert_within_root(backup_dir / file_record.name, backup_root)
+            file_path = self._assert_within_root(
+                backup_dir / file_record.name, backup_root
+            )
             if not file_path.exists():
                 raise WLEDStorageError(
                     f"Backup {backup_id!r} is missing file {file_record.name!r}"
@@ -289,7 +307,8 @@ class BackupStorage:
             actual_hash = self._hash_file(file_path)
             if actual_hash != file_record.sha256:
                 raise WLEDStorageError(
-                    f"Backup {backup_id!r} file {file_record.name!r} failed SHA-256 verification"
+                    f"Backup {backup_id!r} file {file_record.name!r} "
+                    "failed SHA-256 verification"
                 )
             files.append(file_record)
 
@@ -314,7 +333,9 @@ class BackupStorage:
 
     def _write_manifest_sync(self, staging_dir: Path, manifest: dict[str, Any]) -> None:
         manifest_path = staging_dir / MANIFEST_FILENAME
-        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+        manifest_path.write_text(
+            json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8"
+        )
 
     def _resolved_storage_root(self) -> Path:
         if self.storage_root == "config":
@@ -329,7 +350,9 @@ class BackupStorage:
 
         resolved = root.resolve()
         if not resolved.exists() or not resolved.is_dir():
-            raise WLEDStorageError(f"Storage root {resolved} does not exist or is not writable")
+            raise WLEDStorageError(
+                f"Storage root {resolved} does not exist or is not writable"
+            )
         return resolved
 
     def _resolved_backup_root(self, storage_root: Path) -> Path:
@@ -337,24 +360,32 @@ class BackupStorage:
             normalized_subdir = normalize_backup_subdir(self.subdir)
         except vol.Invalid as err:
             raise WLEDValidationError(str(err)) from err
-        backup_root = self._assert_within_root(storage_root / normalized_subdir, storage_root)
+        backup_root = self._assert_within_root(
+            storage_root / normalized_subdir, storage_root
+        )
         return backup_root
 
     def _assert_within_root(self, path: Path, root: Path) -> Path:
         resolved_root = root.resolve()
         resolved_path = path.resolve(strict=False)
         if not resolved_path.is_relative_to(resolved_root):
-            raise WLEDValidationError(f"Path {resolved_path} escapes storage root {resolved_root}")
+            raise WLEDValidationError(
+                f"Path {resolved_path} escapes storage root {resolved_root}"
+            )
         return resolved_path
 
     def _validate_file_name(self, file_name: str) -> str:
         relative = PurePosixPath(file_name.replace("\\", "/"))
-        if relative.is_absolute() or any(part in ("", ".", "..") for part in relative.parts):
+        if relative.is_absolute() or any(
+            part in ("", ".", "..") for part in relative.parts
+        ):
             raise WLEDValidationError(f"Invalid backup file name {file_name!r}")
         return relative.name
 
     def _device_dir_name(self, device_name: str, device_id: str) -> str:
-        sanitized_name = DEVICE_SEGMENT_PATTERN.sub("_", device_name).strip("_") or "device"
+        sanitized_name = (
+            DEVICE_SEGMENT_PATTERN.sub("_", device_name).strip("_") or "device"
+        )
         suffix = DEVICE_SEGMENT_PATTERN.sub("_", device_id).strip("_") or "id"
         return f"{sanitized_name}_{suffix}"
 

@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [storage, filesystem, integrity, security]
 ---
 
 # 07 — Storage service
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -111,16 +111,33 @@ custom_components/wled_backupservice/storage.py
 
 ## Acceptance criteria
 
-- [ ] Approved-root + relative-subdir enforced; traversal impossible.
-- [ ] Writes are atomic; no half-written backup is ever listed as valid.
-- [ ] Manifest with per-file SHA-256; verification detects corruption.
-- [ ] Backup-id resolution always re-validates containment.
-- [ ] >95% coverage for `storage.py`.
+- [x] Approved-root + relative-subdir enforced; traversal impossible.
+- [x] Writes are atomic; no half-written backup is ever listed as valid.
+- [x] Manifest with per-file SHA-256; verification detects corruption.
+- [x] Backup-id resolution always re-validates containment.
+- [x] >95% coverage for `storage.py`.
 
 ## Definition of done
 
 `BackupStorage` can atomically persist, verify, list, and delete backups within an approved
 root, with tamper detection and no event-loop blocking.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- `storage.py` translates shared validator failures (`vol.Invalid` from
+   `normalize_backup_subdir`) into `WLEDValidationError` at the storage boundary, so callers
+   consistently receive integration-level exception types.
+- Atomic writes are implemented with a same-root staging directory and `os.replace`; failure
+   paths clean staging directories and never expose partial backups as readable/valid.
+- Full-suite validation after plan-07 landing is green (`66 passed`), while the existing
+   `pytest-asyncio` custom `event_loop` deprecation warning remains a known baseline unrelated
+   to storage behavior.
 
 ## References
 
