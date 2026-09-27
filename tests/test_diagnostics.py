@@ -15,7 +15,10 @@ from custom_components.wled_backupservice.diagnostics import (
     async_get_config_entry_diagnostics,
 )
 from custom_components.wled_backupservice.discovery import WLEDDevice
-from custom_components.wled_backupservice.manager import INTEGRATION_VERSION, WLEDBackupManager
+from custom_components.wled_backupservice.manager import (
+    INTEGRATION_VERSION,
+    WLEDBackupManager,
+)
 from custom_components.wled_backupservice.storage import (
     StoredBackup,
     StoredBackupDevice,
