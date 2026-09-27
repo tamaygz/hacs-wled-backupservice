@@ -51,7 +51,7 @@ Home Assistant ──▶ WLED Backup Service
 | 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ✅ Complete   | 03         | `discovery.py` maps `wled` config entries to stable devices and resolves HA device targets safely |
 | 06 | [Async WLED client](06_wled_client.md)                                             | ✅ Complete   | 02         | `wled_client.py` covers typed reads, write error mapping, `/edit` multipart upload, and >95% file coverage |
 | 07 | [Storage service](07_storage_service.md)                                           | ✅ Complete   | 02         | `storage.py` now enforces root containment, atomic stage→replace writes, manifest verification, and backup-id revalidation |
-| 08 | [Backup engine](08_backup_engine.md)                                               | ⬜ Not started | 05,06,07   | `async_backup_device`, `async_backup_all` |
+| 08 | [Backup engine](08_backup_engine.md)                                               | ✅ Complete   | 05,06,07   | Manager now composes discovery, client, and storage into fail-soft per-device backups with structured results |
 | 09 | [Retention policy](09_retention.md)                                                | ⬜ Not started | 07,08      | Count + age retention, safe pruning |
 | 10 | [Services / actions registration](10_services_actions.md)                          | ⬜ Not started | 08,09      | `async_setup` registration, `services.yaml`, response data, targeting |
 | 11 | [Restore engine](11_restore_engine.md)                                             | ⬜ Not started | 06,07,08   | cfg + presets restore, safety backup, per-device lock, verify |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, 04, 05, 06, and 07 are complete. The next eligible plan is 08.
+- Plans 01, 02, 03, 04, 05, 06, 07, and 08 are complete. The next eligible plan is 09.
 
 ## Dependency overview
 
@@ -116,6 +116,10 @@ coverage gate, and fills any gaps.
   (`vol.Invalid`) to integration-level `WLEDValidationError`, and validates atomic staging
   cleanup plus manifest/hash integrity with dedicated storage tests (`storage.py` at 98%
   coverage).
+- Plan 08 keeps manager wiring lazy and injection-friendly while still wiring default
+  discovery/client/storage collaborators when needed. Backups run sequentially across
+  devices today, with per-device locks preventing same-device overlap and `BackupResult`
+  dataclasses now carrying structured outcome data for later service exposure.
 
 ## Procedural instructions for future agents
 

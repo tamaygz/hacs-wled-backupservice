@@ -3,10 +3,31 @@
 from __future__ import annotations
 
 import asyncio
+import json
+from dataclasses import asdict
 from typing import TYPE_CHECKING, Any, TypeAlias
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+from .const import (
+    CFG_FILENAME,
+    CONF_INCLUDE_PRESETS,
+    CONF_INCLUDE_STATE,
+    CONF_STORAGE_ROOT,
+    CONF_SUBDIR,
+    DEFAULT_INCLUDE_PRESETS,
+    DEFAULT_INCLUDE_STATE,
+    DEFAULT_STORAGE_ROOT,
+    DEFAULT_SUBDIR,
+    INFO_FILENAME,
+    LOGGER,
+    PRESETS_FILENAME,
+    STATE_FILENAME,
+)
+from .exceptions import WLEDBackupError, WLEDValidationError
+from .models import BackupResult
 
 if TYPE_CHECKING:
     WLEDBackupConfigEntry: TypeAlias = ConfigEntry["WLEDBackupManager"]
@@ -40,13 +61,123 @@ class WLEDBackupManager:
         self.is_shutdown = True
         self.scheduler_unsub = None
 
-    async def async_backup_device(self, *args: Any, **kwargs: Any) -> Any:
+    async def async_backup_device(
+        self,
+        device: Any,
+        *,
+        include_presets: bool | None = None,
+        include_state: bool | None = None,
+        label: str | None = None,
+    ) -> BackupResult:
         """Back up a single WLED device."""
-        raise NotImplementedError
+        del label
+        await self._async_ensure_discovery()
+        self._ensure_client_factory()
+        self._ensure_storage()
 
-    async def async_backup_all(self, *args: Any, **kwargs: Any) -> Any:
+        lock = self._async_get_device_lock(device.device_id)
+        async with lock:
+            include_presets_value = self._bool_option(
+                CONF_INCLUDE_PRESETS,
+                DEFAULT_INCLUDE_PRESETS,
+                include_presets,
+            )
+            include_state_value = self._bool_option(
+                CONF_INCLUDE_STATE,
+                DEFAULT_INCLUDE_STATE,
+                include_state,
+            )
+
+            try:
+                client_factory = self.client_factory
+                storage = self.storage
+                assert client_factory is not None
+                assert storage is not None
+
+                client = client_factory(device.host)
+                info = await client.async_get_info()
+                self._validate_verified_info(device, info)
+
+                files = {
+                    CFG_FILENAME: self._json_bytes(await client.async_get_config()),
+                    INFO_FILENAME: self._json_bytes(asdict(info)),
+                }
+                if include_presets_value:
+                    files[PRESETS_FILENAME] = await client.async_get_presets_raw()
+                if include_state_value:
+                    files[STATE_FILENAME] = self._json_bytes(
+                        await client.async_get_state()
+                    )
+
+                verified_mac = device.mac or info.mac_address
+                verified_device_id = (
+                    info.device_id or info.mac_address or device.device_id
+                )
+                if device.mac and info.mac_address and info.mac_address != device.mac:
+                    LOGGER.warning(
+                        "Discovered MAC %s for %s differs from verified MAC %s",
+                        device.mac,
+                        device.name,
+                        info.mac_address,
+                    )
+
+                backup = await storage.async_write_backup(
+                    device_name=device.name,
+                    host=device.host,
+                    device_id=verified_device_id,
+                    mac=verified_mac,
+                    firmware_version=info.version,
+                    files=files,
+                )
+                result = BackupResult(
+                    device_id=backup.device.device_id,
+                    device_name=backup.device.name,
+                    success=True,
+                    backup_id=backup.backup_id,
+                    path=backup.path,
+                    files=tuple(file_record.name for file_record in backup.files),
+                    created_at=backup.created_at,
+                    error=None,
+                )
+                LOGGER.info(
+                    "Created WLED backup for %s at %s",
+                    device.name,
+                    backup.backup_id,
+                )
+                return result
+            except WLEDBackupError as err:
+                LOGGER.warning("Backup failed for %s: %s", device.name, err)
+                return BackupResult(
+                    device_id=device.device_id,
+                    device_name=device.name,
+                    success=False,
+                    backup_id=None,
+                    path=None,
+                    files=(),
+                    created_at=None,
+                    error=str(err),
+                )
+
+    async def async_backup_all(
+        self,
+        *,
+        include_presets: bool | None = None,
+        include_state: bool | None = None,
+    ) -> list[BackupResult]:
         """Back up all discovered WLED devices."""
-        raise NotImplementedError
+        devices = await self.async_discover_devices()
+        LOGGER.info("Starting WLED backup cycle for %s devices", len(devices))
+
+        results: list[BackupResult] = []
+        for device in devices:
+            result = await self.async_backup_device(
+                device,
+                include_presets=include_presets,
+                include_state=include_state,
+            )
+            results.append(result)
+        LOGGER.info("Finished WLED backup cycle for %s devices", len(devices))
+        return results
 
     async def async_restore(self, *args: Any, **kwargs: Any) -> Any:
         """Restore a WLED device backup."""
@@ -66,4 +197,71 @@ class WLEDBackupManager:
 
     async def async_discover_devices(self, *args: Any, **kwargs: Any) -> Any:
         """Discover WLED devices."""
-        raise NotImplementedError
+        del args, kwargs
+        await self._async_ensure_discovery()
+        discovery = self.discovery
+        assert discovery is not None
+        return await discovery.async_discover_wled_devices(self.hass)
+
+    def _async_get_device_lock(self, device_id: str) -> asyncio.Lock:
+        """Return the shared lock for a device, creating it lazily."""
+        lock = self.locks.get(device_id)
+        if lock is None:
+            lock = asyncio.Lock()
+            self.locks[device_id] = lock
+        return lock
+
+    async def _async_ensure_discovery(self) -> None:
+        """Lazily wire the discovery collaborator."""
+        if self.discovery is None:
+            from . import discovery as discovery_module
+
+            self.discovery = discovery_module
+
+    def _ensure_client_factory(self) -> None:
+        """Lazily wire the WLED client factory."""
+        if self.client_factory is None:
+            from .wled_client import WLEDClient
+
+            session = async_get_clientsession(self.hass)
+            self.client_factory = lambda host: WLEDClient(host, session)
+
+    def _ensure_storage(self) -> None:
+        """Lazily wire the backup storage collaborator."""
+        if self.storage is None:
+            from .storage import BackupStorage
+
+            self.storage = BackupStorage(
+                self.hass,
+                storage_root=self.entry.options.get(
+                    CONF_STORAGE_ROOT,
+                    DEFAULT_STORAGE_ROOT,
+                ),
+                subdir=self.entry.options.get(CONF_SUBDIR, DEFAULT_SUBDIR),
+            )
+
+    def _bool_option(
+        self,
+        key: str,
+        default: bool,
+        override: bool | None,
+    ) -> bool:
+        """Resolve a boolean override against config-entry options."""
+        if override is not None:
+            return override
+        return bool(self.entry.options.get(key, default))
+
+    def _validate_verified_info(self, device: Any, info: Any) -> None:
+        """Validate the basic identity returned by a live WLED info call."""
+        if info.brand and info.brand != "WLED":
+            raise WLEDValidationError(
+                f"Expected WLED device at {device.host}, got {info.brand!r}"
+            )
+        if not (info.device_id or info.mac_address or device.mac):
+            raise WLEDValidationError(
+                f"WLED device at {device.host} did not report a usable identity"
+            )
+
+    def _json_bytes(self, payload: dict[str, Any]) -> bytes:
+        """Serialize a JSON object to stable UTF-8 bytes for backup storage."""
+        return json.dumps(payload, indent=2, sort_keys=True).encode("utf-8")

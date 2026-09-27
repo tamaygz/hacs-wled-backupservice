@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [backup, manager, engine]
 ---
 
 # 08 — Backup engine
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -106,15 +106,36 @@ custom_components/wled_backupservice/models.py      # BackupResult / result data
 
 ## Acceptance criteria
 
-- [ ] Single-device backup verifies, fetches selected artifacts, writes atomically, returns result.
-- [ ] Bulk backup is fail-soft and per-device serialized.
-- [ ] Structured `BackupResult` returned for services/response data.
-- [ ] >95% coverage for the backup paths in `manager.py`.
+- [x] Single-device backup verifies, fetches selected artifacts, writes atomically, returns result.
+- [x] Bulk backup is fail-soft and per-device serialized.
+- [x] Structured `BackupResult` returned for services/response data.
+- [x] >95% coverage for the backup paths in `manager.py`.
 
 ## Definition of done
 
 The manager can back up one or all discovered WLED devices into valid, hashed, atomic
 backups, returning structured results, with robust per-device error isolation.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The manager keeps plan-08 wiring lazy and collaborator-driven: `discovery`, `client_factory`,
+  and `storage` can be injected directly by tests or later slices, while default wiring only
+  occurs when a given collaborator is actually needed.
+- Bulk backup is implemented sequentially by design for predictability. Per-device locking is
+  still in place so concurrent callers targeting the same device are serialized even if future
+  slices introduce broader concurrency.
+- The manager records `info.json` alongside `cfg.json` and optional `presets.json` /
+  `state.json`, giving later restore or diagnostics work a verified snapshot of the live
+  device identity used during backup.
+- Full-suite validation after plan-08 landing is green (`82 passed`, total coverage 95%),
+  while the existing `pytest-asyncio` custom `event_loop` deprecation warning remains an
+  unchanged baseline unrelated to backup-engine behavior.
 
 ## References
 
