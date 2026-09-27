@@ -49,9 +49,11 @@ class FakeManager:
         device: WLEDDevice,
         **kwargs: object,
     ) -> BackupResult:
+        del device, kwargs
         return self.backup_result
 
     async def async_backup_all(self, **kwargs: object) -> list[BackupResult]:
+        del kwargs
         return self.backup_all_results
 
     async def async_restore(
@@ -171,6 +173,17 @@ async def _register_services(hass: HomeAssistant) -> None:
     await integration.async_setup(hass, {})
 
 
+def _add_runtime_entry(
+    hass: HomeAssistant,
+    manager: FakeManager,
+) -> MockConfigEntry:
+    """Attach a configured runtime entry to Home Assistant for service tests."""
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.runtime_data = manager
+    entry.add_to_hass(hass)
+    return entry
+
+
 @pytest.mark.asyncio
 async def test_async_setup_registers_services_idempotently(
     hass: HomeAssistant,
@@ -232,9 +245,7 @@ async def test_backup_action_returns_serialized_results(
         prune_result=_make_prune_result(),
         devices=[device],
     )
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     async def resolve_devices(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
         return [device]
@@ -270,9 +281,7 @@ async def test_backup_all_and_discover_return_response_data(
         prune_result=_make_prune_result(),
         devices=[device],
     )
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     backup_all_response = await hass.services.async_call(
         DOMAIN,
@@ -309,9 +318,7 @@ async def test_list_backups_delete_backup_and_prune_actions(
         prune_result=_make_prune_result(),
         devices=[device],
     )
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     async def resolve_devices(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
         return [device]
@@ -364,9 +371,7 @@ async def test_restore_action_requires_one_device_and_is_not_ready(
         prune_result=_make_prune_result(),
         devices=[device],
     )
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     async def resolve_none(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
         return []
@@ -408,9 +413,6 @@ async def test_restore_action_requires_one_device_and_is_not_ready(
         )
     assert exc_info.value.translation_domain == DOMAIN
     assert exc_info.value.translation_key == "restore_requires_single_device"
-
-    async def resolve_one(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
-        return [device]
 
 
 @pytest.mark.asyncio
@@ -455,9 +457,7 @@ async def test_restore_action_returns_response_when_manager_supports_it(
         devices=[device],
     )
     manager.restore_response = {"restored": True}
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     async def resolve_one(_hass: HomeAssistant, _call: object) -> list[WLEDDevice]:
         return [device]
@@ -492,9 +492,7 @@ async def test_list_backups_without_target_uses_manager_directly(
         prune_result=_make_prune_result(),
         devices=[device],
     )
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     response = await hass.services.async_call(
         DOMAIN,
@@ -522,9 +520,7 @@ async def test_prune_without_target_and_with_multiple_targets(
         prune_result=_make_prune_result(device_id="device-one"),
         devices=[device_one, device_two],
     )
-    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
-    entry.runtime_data = manager
-    entry.add_to_hass(hass)
+    _add_runtime_entry(hass, manager)
 
     response = await hass.services.async_call(
         DOMAIN,
