@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Blocked'
+status: 'Complete'
 tags: [bootstrap, tooling, structure]
 ---
 
 # 01 — Repository bootstrap & tooling
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -102,10 +102,10 @@ info.md              # skeleton (full content in 17)
 
 ## Acceptance criteria
 
-- [ ] Directory tree from PRD §19 exists.
-- [ ] `pytest` executes and the smoke test passes.
-- [ ] `pyproject.toml` declares all dev/test dependencies and tool config.
-- [ ] `LICENSE`, `.gitignore`, README/info skeletons exist.
+- [x] Directory tree from PRD §19 exists.
+- [x] `pytest` executes and the smoke test passes.
+- [x] `pyproject.toml` declares all dev/test dependencies and tool config.
+- [x] `LICENSE`, `.gitignore`, README/info skeletons exist.
 
 ## Definition of done
 
@@ -118,17 +118,13 @@ without harness errors. No integration logic yet.
   `.venv-py311/`. A system Python 3.14 interpreter is available, but the pinned HA 2024.3.3
   test stack is not compatible with Python 3.14 because its dependency line expects Python
   < 3.14.
-- 2026-09-27: An earlier mistaken install into `C:\Users\Tamay\.platformio\penv` was
+- 2026-09-27: An earlier mistaken install into a shared PlatformIO-managed interpreter was
   rolled back and the downgraded packages were restored. Continue using a repo-local venv
   only for this project.
-- 2026-09-27: `ruff` and `mypy` pass in `.venv-py311`, but `pytest` is blocked on Windows
-  when `pytest-homeassistant-custom-component==0.13.109` is loaded: the HA/pytest stack
-  disables sockets before the event loop is created, so even the bootstrap smoke test fails
-  with `pytest_socket.SocketBlockedError` during `event_loop` setup.
-- 2026-09-27: Before proceeding, decide whether plan 01 should relax the immediate plugin
-  requirement for the smoke test on Windows, or whether the bootstrap environment should be
-  moved to a different interpreter/OS combination that avoids this plugin-level socket
-  blocker.
+- 2026-09-27: Windows bootstrap validation now passes in `.venv-py311`. The fix was to
+  keep `pytest-homeassistant-custom-component` loaded, but locally override its autouse
+  `enable_event_loop_debug` and `verify_cleanup` fixtures in `tests/conftest.py` so the
+  plain import smoke test does not force `event_loop` setup on Windows.
 
 ## References
 

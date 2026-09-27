@@ -94,6 +94,11 @@ with reality.
 - Do not mark a plan complete without performing its stated validation.
 - Do not invent undocumented Home Assistant or WLED API behavior.
 - Do not take a shortcut that leaves roadmap docs stale.
+- Do not write machine-specific absolute paths or other workstation-specific identifiers
+  into committed documentation; use generic placeholders instead.
+- Public repo metadata such as repository URLs, GitHub owners, codeowners, and issue-
+  tracker URLs may remain when they are intentional project data rather than local-machine
+  data.
 - Do not push through ambiguity when a user decision is required.
 
 ## User Interaction Rules

@@ -43,10 +43,10 @@ brand/README.md            # note pointing to home-assistant/brands submission
    {
      "domain": "wled_backupservice",
      "name": "WLED Backup Service",
-     "codeowners": ["@tamaygz"],
+    "codeowners": ["@tamaygz"],
      "config_flow": true,
-     "documentation": "https://github.com/tamaygz/hacs-wled-backupservice",
-     "issue_tracker": "https://github.com/tamaygz/hacs-wled-backupservice/issues",
+    "documentation": "https://github.com/tamaygz/hacs-wled-backupservice",
+    "issue_tracker": "https://github.com/tamaygz/hacs-wled-backupservice/issues",
      "integration_type": "service",
      "iot_class": "local_polling",
      "single_config_entry": true,
