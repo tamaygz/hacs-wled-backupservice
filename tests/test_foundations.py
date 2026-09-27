@@ -39,7 +39,7 @@ def test_hacs_json_has_required_keys() -> None:
 
 def test_brand_icon_exists() -> None:
     """The repository should include the HACS-required brand icon file."""
-    assert (ROOT / "brand" / "icon.png").exists()
+    assert (ROOT / "custom_components" / "wled_backupservice" / "brand" / "icon.png").exists()
 
 
 def test_custom_exceptions_subclass_homeassistant_error() -> None:
