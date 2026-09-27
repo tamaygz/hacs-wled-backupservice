@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [lifecycle, runtime_data, setup]
 ---
 
 # 03 — Integration skeleton & lifecycle
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -104,15 +104,30 @@ custom_components/wled_backupservice/services.py     # async_register_services(h
 
 ## Acceptance criteria
 
-- [ ] Single config entry loads and unloads without error.
-- [ ] `entry.runtime_data` holds the manager (typed).
-- [ ] Services register from `async_setup` and survive entry unload.
-- [ ] Migration hook present for `VERSION = 1`.
+- [x] Single config entry loads and unloads without error.
+- [x] `entry.runtime_data` holds the manager (typed).
+- [x] Services register from `async_setup` and survive entry unload.
+- [x] Migration hook present for `VERSION = 1`.
 
 ## Definition of done
 
 HA loads and unloads the integration cleanly with an empty-but-wired manager; later plans
 fill manager methods and the service registry without touching lifecycle glue.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- On Windows with `pytest-homeassistant-custom-component`, early lifecycle coverage is more
+  reliable as plain unit tests than as `hass`-fixture integration tests because
+  `pytest-socket` blocks `asyncio` event-loop creation unless sockets are explicitly enabled.
+- The manager config-entry alias is defined as a `TYPE_CHECKING` generic alias with a
+  runtime fallback so the integration stays compatible with the Home Assistant runtime while
+  still giving type checkers a typed `runtime_data` surface.
 
 ## References
 
