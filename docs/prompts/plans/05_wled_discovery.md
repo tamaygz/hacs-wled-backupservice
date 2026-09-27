@@ -4,13 +4,13 @@ version: 1.0
 date_created: 2026-09-27
 last_updated: 2026-09-27
 owner: '@tamaygz'
-status: 'Planned'
+status: 'Complete'
 tags: [discovery, device-registry, wled]
 ---
 
 # 05 — WLED discovery adapter
 
-![Status: Planned](https://img.shields.io/badge/status-Planned-blue)
+![Status: Complete](https://img.shields.io/badge/status-Complete-brightgreen)
 
 ## Objective
 
@@ -116,15 +116,34 @@ custom_components/wled_backupservice/discovery.py
 
 ## Acceptance criteria
 
-- [ ] Discovers all `wled` entries with host + MAC identity.
-- [ ] No dependency on IP sensor or friendly name for identity.
-- [ ] Target resolver rejects non-WLED devices.
-- [ ] Registry access uses current (non-deprecated) scoped APIs.
+- [x] Discovers all `wled` entries with host + MAC identity.
+- [x] No dependency on IP sensor or friendly name for identity.
+- [x] Target resolver rejects non-WLED devices.
+- [x] Registry access is isolated behind this adapter, using scoped helpers when available and a pinned-version fallback otherwise.
 
 ## Definition of done
 
 `async_discover_wled_devices` returns a correct, stable device list from the HA `wled`
 integration across the tested edge cases, with all HA-version-sensitive logic isolated here.
+
+## Validation completed
+
+- `python -m pytest`
+- `python -m ruff check .`
+- `python -m mypy custom_components tests`
+
+## Open questions / discoveries
+
+- The pinned Home Assistant version in this repository (`2024.3.3`) does not yet expose the
+  newer scoped device-registry lookup helpers described in the forward-looking roadmap.
+  The adapter therefore prefers those helpers when present, but falls back to
+  `DeviceRegistry.async_get_device(...)` plus config-entry ownership filtering on the current
+  stack.
+- The pinned WLED integration stores the device MAC address directly as the config-entry
+  `unique_id`, and its device registry entries use both `(wled, mac)` identifiers and
+  `CONNECTION_NETWORK_MAC` connections. Discovery now reuses that exact identity shape.
+- Entries missing `CONF_HOST` are skipped with a warning rather than causing discovery to
+  fail for all devices.
 
 ## References
 

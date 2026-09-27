@@ -48,7 +48,7 @@ Home Assistant ──▶ WLED Backup Service
 | 02 | [Manifest, HACS metadata, branding, foundations](02_manifest_hacs_foundations.md) | ✅ Complete   | 01         | `manifest.json`, `hacs.json`, `const.py`, `exceptions.py`, and HACS repo branding placeholder are in place |
 | 03 | [Integration skeleton & lifecycle](03_integration_skeleton_lifecycle.md)          | ✅ Complete   | 02         | `__init__.py`, typed `runtime_data`, manager shell, service-registration stub, and lifecycle tests all pass |
 | 04 | [Config flow & options flow](04_config_options_flow.md)                            | ✅ Complete   | 03         | Single-instance config flow, multi-step options flow, shared subdir validation, and >95% `config_flow.py` coverage validated |
-| 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ⬜ Not started | 03         | Discover via `wled` config entries + device registry |
+| 05 | [WLED discovery adapter](05_wled_discovery.md)                                     | ✅ Complete   | 03         | `discovery.py` maps `wled` config entries to stable devices and resolves HA device targets safely |
 | 06 | [Async WLED client](06_wled_client.md)                                             | ⬜ Not started | 02         | `info`/`cfg`/`presets`/`state` GET + `cfg` POST + `/edit` upload |
 | 07 | [Storage service](07_storage_service.md)                                           | ⬜ Not started | 02         | Path validation, atomic writes, manifest + sha256 |
 | 08 | [Backup engine](08_backup_engine.md)                                               | ⬜ Not started | 05,06,07   | `async_backup_device`, `async_backup_all` |
@@ -66,7 +66,7 @@ Statuses: ⬜ Not started · 🟡 In progress · ✅ Complete · 🔴 Blocked
 
 ## Current checkpoint
 
-- Plans 01, 02, 03, and 04 are complete. The next eligible plan is 05.
+- Plans 01, 02, 03, 04, and 05 are complete. The next eligible plan is 06.
 
 ## Dependency overview
 
@@ -106,6 +106,9 @@ coverage gate, and fills any gaps.
 - Plan 04 uses a version-compatibility split for options flows because the repo's pinned HA
   version (`2024.3.3`) predates the auto-injected `OptionsFlow.config_entry` property that
   became the forward-safe pattern in HA 2024.11+.
+- Plan 05 uses a similar compatibility split inside `discovery.py`: newer scoped device
+  registry lookups are preferred when present, but the pinned HA stack still requires a
+  fallback to `DeviceRegistry.async_get_device(...)` plus config-entry ownership filtering.
 
 ## Procedural instructions for future agents
 
