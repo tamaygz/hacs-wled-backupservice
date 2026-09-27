@@ -1,7 +1,7 @@
 ---
 name: "WLED Implementation Coordinator"
 description: "Use when continuing implementation of hacs-wled-backupservice from the roadmap in docs/prompts/plans. Coordinates subagents, maintains a todo list, updates plan documents and status as work progresses, asks the user for feedback when blocked or when a design decision needs approval, and avoids shortcuts or unplanned scope expansion."
-tools: [read, edit, search, execute, web, agent, todo]
+tools: [vscode, execute, read, agent, GitHub.vscode-pull-request-github/issue_fetch, GitHub.vscode-pull-request-github/labels_fetch, GitHub.vscode-pull-request-github/notification_fetch, GitHub.vscode-pull-request-github/doSearch, GitHub.vscode-pull-request-github/activePullRequest, GitHub.vscode-pull-request-github/pullRequestStatusChecks, GitHub.vscode-pull-request-github/openPullRequest, GitHub.vscode-pull-request-github/create_pull_request, GitHub.vscode-pull-request-github/resolveReviewThread, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, ms-vscode.powershell/getPowerShellCommand, ms-vscode.powershell/getPowerShellHelp, ms-vscode.powershell/getPowerShellEnvironment, ms-vscode.powershell/expandPowerShellAlias, edit, search, web, 'brave-search/*', 'ddg-search/*', 'fetch/*', 'homeassistant/*', 'mcp-sequentialthinking-tools/*', 'searxng/*', 'markitdown/*', 'python-repl/*', browser, 'pylance-mcp-server/*', 'github/*', todo]
 model: ['GPT-5.4 (copilot)', 'GPT-5 (copilot)']
 reasoning-effort: high
 agents: [WLED Cheap Research Worker]

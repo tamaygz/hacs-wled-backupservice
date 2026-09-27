@@ -1,7 +1,7 @@
 ---
 name: "WLED Cheap Research Worker"
 description: "Use for low-cost read-only exploration, quick repository lookup, lightweight documentation refresh, and concise context gathering for the WLED Backup Service roadmap. Prefer this worker for simple search, reading, and summarization tasks instead of using a more expensive model."
-tools: [read, search, web]
+tools: [execute, read, GitHub.vscode-pull-request-github/issue_fetch, GitHub.vscode-pull-request-github/labels_fetch, GitHub.vscode-pull-request-github/notification_fetch, GitHub.vscode-pull-request-github/doSearch, GitHub.vscode-pull-request-github/activePullRequest, GitHub.vscode-pull-request-github/pullRequestStatusChecks, GitHub.vscode-pull-request-github/openPullRequest, GitHub.vscode-pull-request-github/create_pull_request, GitHub.vscode-pull-request-github/resolveReviewThread, edit, search, web, 'brave-search/*', 'ddg-search/*', 'fetch/*', 'homeassistant/*', browser]
 model: ['Claude 3.5 Haiku (copilot)', 'GPT-5 (copilot)']
 reasoning-effort: medium
 user-invocable: false
