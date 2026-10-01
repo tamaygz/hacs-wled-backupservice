@@ -1,7 +1,5 @@
 backup:
-  target:
-    device:
-      integration: wled
+  target: {}
   fields:
     include_presets:
       required: false
@@ -18,8 +16,6 @@ backup:
       selector:
         text:
       example: before-upgrade
-  response:
-    optional: true
 
 backup_all:
   fields:
@@ -33,13 +29,9 @@ backup_all:
       selector:
         boolean:
       example: false
-  response:
-    optional: true
 
 restore:
-  target:
-    device:
-      integration: wled
+  target: {}
   fields:
     backup_id:
       required: true
@@ -65,13 +57,9 @@ restore:
       required: false
       selector:
         boolean:
-  response:
-    optional: true
 
 list_backups:
-  target:
-    device:
-      integration: wled
+  target: {}
   fields:
     limit:
       required: false
@@ -80,8 +68,6 @@ list_backups:
           min: 1
           mode: box
           step: 1
-  response:
-    only: true
 
 delete_backup:
   fields:
@@ -89,22 +75,14 @@ delete_backup:
       required: true
       selector:
         text:
-  response:
-    optional: true
 
 prune:
-  target:
-    device:
-      integration: wled
+  target: {}
   fields:
     dry_run:
       required: false
       selector:
         boolean:
       example: true
-  response:
-    optional: true
 
-discover:
-  response:
-    optional: true
+discover: {}

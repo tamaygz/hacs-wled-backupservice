@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-09-27
+
+### Changed
+
+- Release workflow publication.
+
+## [0.1.2] - 2026-09-27
+
+### Changed
+
+- Release workflow publication.
+
 - Documentation and release-preparation updates for the first public release.
 
 ## [1.0.0] - Pending release
